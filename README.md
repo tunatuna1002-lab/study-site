@@ -12,6 +12,9 @@ vault/            옵시디언에서 쓰는 노트(.md만)
   attachments/
 public/widgets/   위젯 HTML. 노트에서 <iframe src="/widgets/...">로 삽입
 src/              Astro 코드
+skills/study-log/ Claude Code 스킬: 대화 → 노트 초안 → 승인 후 공개
+scripts/          스킬 도우미(study-log.mjs)와 설치 스크립트
+docs/setup.md     컴퓨터별 설치, Obsidian Git 설정, 사용법
 ```
 
 ## 노트 규칙
@@ -31,3 +34,5 @@ src/              Astro 코드
 | `npm run preview` | 빌드 결과 미리 보기 |
 
 배포: Cloudflare Pages (빌드 `npm run build`, 출력 `dist`).
+
+새 컴퓨터 설치와 "기록해 줘" 흐름은 [docs/setup.md](docs/setup.md)를 본다.

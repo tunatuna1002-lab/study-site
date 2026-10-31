@@ -3,7 +3,10 @@
     "src/",
     "public/",
     "node_modules/",
-    "dist/"
+    "dist/",
+    "skills/",
+    "scripts/",
+    "docs/"
   ],
   "attachmentFolderPath": "vault/attachments",
   "newFileLocation": "folder",
