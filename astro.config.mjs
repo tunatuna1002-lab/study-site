@@ -9,7 +9,7 @@ import remarkWikilinks from './src/plugins/remark-wikilinks.mjs';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://study-site.pages.dev',
+	site: 'https://study-site-5po.pages.dev',
 	integrations: [sitemap()],
 	markdown: {
 		// remark/rehype pipeline (Astro 7's default processor does not run remark plugins)
