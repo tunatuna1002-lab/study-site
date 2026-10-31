@@ -1,0 +1,60 @@
+---
+import { SITE_TITLE } from '../consts';
+
+const links = [
+	{ href: '/log/', label: '학습 로그' },
+	{ href: '/stats/', label: '통계' },
+	{ href: '/map/', label: '지도' },
+];
+const path = Astro.url.pathname;
+---
+
+<header class="site-header">
+	<nav>
+		<a class="brand" href="/">{SITE_TITLE}</a>
+		<div class="links">
+			{links.map(({ href, label }) => (
+				<a href={href} aria-current={path.startsWith(href) ? 'page' : undefined}>{label}</a>
+			))}
+		</div>
+	</nav>
+</header>
+
+<style>
+	.site-header {
+		border-bottom: 1px solid var(--border);
+	}
+	nav {
+		max-width: var(--page);
+		margin: 0 auto;
+		padding: 14px var(--gutter);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+	}
+	.brand {
+		font-weight: 700;
+		color: var(--text);
+		text-decoration: none;
+	}
+	.links {
+		display: flex;
+		gap: 4px;
+	}
+	.links a {
+		padding: 4px 10px;
+		border-radius: 999px;
+		color: var(--text-2);
+		text-decoration: none;
+		font-size: 15px;
+	}
+	.links a:hover {
+		color: var(--text);
+		background: var(--surface);
+	}
+	.links a[aria-current='page'] {
+		color: var(--accent-text);
+		background: var(--accent-bg);
+	}
+</style>

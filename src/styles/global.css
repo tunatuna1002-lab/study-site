@@ -1,0 +1,271 @@
+/* Colors follow the widgets in public/widgets so iframes blend into the page. */
+:root {
+	--page: 1080px;
+	--prose: 720px;
+	--wide: 960px;
+	--gutter: 20px;
+
+	--bg: #ffffff;
+	--surface: #f5f4ef;
+	--text: #1f1e1d;
+	--text-2: #5f5e5a;
+	--text-3: #888780;
+	--border: rgba(31, 30, 29, 0.12);
+	--border-strong: rgba(31, 30, 29, 0.22);
+	--accent: #534ab7;
+	--accent-text: #3c3489;
+	--accent-bg: #eeedfe;
+	--link: #185fa5;
+	--heat-0: #ebeae4;
+	--heat-1: #cfcbf3;
+	--heat-2: #a49ce6;
+	--heat-3: #7369cf;
+	--heat-4: #3c3489;
+	--font: 'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+	--mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #191918;
+		--surface: #262624;
+		--text: #ecebe6;
+		--text-2: #b4b2a9;
+		--text-3: #888780;
+		--border: rgba(236, 235, 230, 0.14);
+		--border-strong: rgba(236, 235, 230, 0.26);
+		--accent: #afa9ec;
+		--accent-text: #eeedfe;
+		--accent-bg: #3c3489;
+		--link: #b5d4f4;
+		--heat-0: #2c2c2a;
+		--heat-1: #3c3489;
+		--heat-2: #534ab7;
+		--heat-3: #7f77dd;
+		--heat-4: #afa9ec;
+	}
+	.astro-code,
+	.astro-code span {
+		color: var(--shiki-dark) !important;
+		background-color: var(--shiki-dark-bg) !important;
+	}
+}
+
+* {
+	box-sizing: border-box;
+}
+html {
+	-webkit-text-size-adjust: 100%;
+}
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font);
+	font-size: 17px;
+	line-height: 1.85;
+	word-break: keep-all;
+	overflow-wrap: break-word;
+}
+a {
+	color: var(--link);
+	text-underline-offset: 3px;
+}
+main {
+	padding: 0 var(--gutter);
+}
+.container {
+	max-width: var(--page);
+	margin: 0 auto;
+}
+.narrow {
+	max-width: var(--prose);
+	margin: 0 auto;
+}
+h1,
+h2,
+h3,
+h4 {
+	line-height: 1.35;
+	letter-spacing: -0.01em;
+}
+.page-title {
+	font-size: 2rem;
+	margin: 56px 0 8px;
+}
+.page-lead {
+	color: var(--text-2);
+	margin: 0 0 40px;
+}
+.muted {
+	color: var(--text-3);
+}
+.chip {
+	display: inline-block;
+	padding: 1px 10px;
+	border-radius: 999px;
+	background: var(--surface);
+	color: var(--text-2);
+	font-size: 13px;
+	line-height: 1.8;
+	text-decoration: none;
+	white-space: nowrap;
+}
+a.chip:hover {
+	color: var(--accent-text);
+	background: var(--accent-bg);
+}
+.chip.accent {
+	background: var(--accent-bg);
+	color: var(--accent-text);
+}
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+/* Article body (rendered Markdown) */
+.prose {
+	min-width: 0;
+}
+.prose h2 {
+	margin: 2.6em 0 0.8em;
+	font-size: 1.5rem;
+}
+.prose h3 {
+	margin: 2em 0 0.6em;
+	font-size: 1.2rem;
+}
+.prose p,
+.prose ul,
+.prose ol {
+	margin: 0 0 1.1em;
+}
+.prose li {
+	margin: 0.25em 0;
+}
+.prose blockquote {
+	margin: 1.6em 0;
+	padding: 14px 20px;
+	border-left: 3px solid var(--accent);
+	background: var(--surface);
+	border-radius: 0 8px 8px 0;
+	color: var(--text);
+}
+.prose blockquote > :last-child {
+	margin-bottom: 0;
+}
+.prose code {
+	font-family: var(--mono);
+	font-size: 0.88em;
+	background: var(--surface);
+	padding: 0.1em 0.35em;
+	border-radius: 5px;
+}
+.prose pre {
+	padding: 16px;
+	border-radius: 10px;
+	overflow-x: auto;
+	font-size: 14px;
+	line-height: 1.6;
+}
+.prose pre code {
+	background: none;
+	padding: 0;
+}
+.prose table {
+	display: block;
+	overflow-x: auto;
+	border-collapse: collapse;
+	margin: 1.6em 0;
+	font-size: 15px;
+	line-height: 1.6;
+}
+.prose th,
+.prose td {
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border);
+	text-align: left;
+	vertical-align: top;
+}
+.prose th {
+	border-bottom: 1px solid var(--border-strong);
+	white-space: nowrap;
+}
+.prose hr {
+	border: 0;
+	border-top: 1px solid var(--border);
+	margin: 3em 0;
+}
+.prose img {
+	max-width: 100%;
+	height: auto;
+}
+.prose .katex-display {
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding: 4px 0;
+}
+.prose .katex {
+	font-size: 1.05em;
+}
+.prose .wikilink {
+	text-decoration-style: dotted;
+}
+.prose .wikilink-missing {
+	color: var(--text-2);
+	border-bottom: 1px dashed var(--border-strong);
+}
+
+/* Widgets: wider than the text column, height set by NoteLayout's script. */
+.prose iframe {
+	display: block;
+	width: min(var(--wide), calc(100vw - 2 * var(--gutter))) !important;
+	max-width: none;
+	position: relative;
+	left: 50%;
+	transform: translateX(-50%);
+	margin: 2em 0;
+	border: 1px solid var(--border) !important;
+	border-radius: 12px;
+	background: var(--bg);
+}
+
+/* Lists of notes */
+.note-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.note-list li {
+	padding: 18px 0;
+	border-bottom: 1px solid var(--border);
+}
+.note-list a.title {
+	color: var(--text);
+	font-weight: 600;
+	font-size: 1.1rem;
+	text-decoration: none;
+}
+.note-list a.title:hover {
+	color: var(--accent);
+}
+.note-list .meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 12px;
+	align-items: center;
+	color: var(--text-3);
+	font-size: 14px;
+	margin-top: 4px;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forward gradient</title>
+<style>
+:root{--text-primary:#1f1e1d;--text-secondary:#5f5e5a;--text-muted:#888780;--border:rgba(31,30,29,.12);--border-strong:rgba(31,30,29,.22);--border-accent:#378ADD;--bg-accent:#E6F1FB;--text-accent:#185FA5;--surface-1:#F5F4EF;--surface-2:#ffffff;--radius:8px;--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;--t:#5f5e5a}
+@media (prefers-color-scheme:dark){:root{--text-primary:#ecebe6;--text-secondary:#b4b2a9;--text-muted:#888780;--border:rgba(236,235,230,.14);--border-strong:rgba(236,235,230,.26);--bg-accent:#0C447C;--text-accent:#B5D4F4;--surface-1:#262624;--surface-2:#1f1e1d;--t:#b4b2a9}body{background:#191918}}
+body{margin:0;padding:16px;font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Noto Sans CJK KR",system-ui,sans-serif;color:var(--text-primary);background:var(--surface-2);font-size:16px;line-height:1.6}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+button{font:inherit;font-size:14px;padding:6px 12px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:transparent;color:var(--text-primary);cursor:pointer}
+input[type=range]{accent-color:#534AB7}
+svg text{font-family:inherit}
+.t{font-size:14px;fill:var(--text-primary)}.ts{font-size:12px;fill:var(--text-secondary)}.th{font-size:14px;font-weight:500;fill:var(--text-primary)}
+.box{fill:var(--surface-1);stroke:var(--border-strong)}
+.arr{stroke:var(--text-secondary);stroke-width:1.5;fill:none}
+.leader{stroke:var(--text-muted);stroke-width:.5;stroke-dasharray:3 3;fill:none}
+.c-purple>rect,rect.c-purple{fill:#EEEDFE;stroke:#534AB7}.c-purple>.th{fill:#3C3489}.c-purple>.ts{fill:#534AB7}
+.c-teal>rect,rect.c-teal{fill:#E1F5EE;stroke:#0F6E56}.c-teal>.th{fill:#085041}.c-teal>.ts{fill:#0F6E56}
+.c-coral>rect,rect.c-coral{fill:#FAECE7;stroke:#993C1D}.c-coral>.th{fill:#712B13}.c-coral>.ts{fill:#993C1D}
+.c-amber>rect,rect.c-amber{fill:#FAEEDA;stroke:#854F0B}.c-amber>.th{fill:#633806}.c-amber>.ts{fill:#854F0B}
+.c-gray>rect,rect.c-gray{fill:#F1EFE8;stroke:#5F5E5A}.c-gray>.th{fill:#444441}.c-gray>.ts{fill:#5F5E5A}
+@media (prefers-color-scheme:dark){
+.c-purple>rect,rect.c-purple{fill:#3C3489;stroke:#AFA9EC}.c-purple>.th{fill:#EEEDFE}.c-purple>.ts{fill:#CECBF6}
+.c-teal>rect,rect.c-teal{fill:#085041;stroke:#5DCAA5}.c-teal>.th{fill:#E1F5EE}.c-teal>.ts{fill:#9FE1CB}
+.c-coral>rect,rect.c-coral{fill:#712B13;stroke:#F0997B}.c-coral>.th{fill:#FAECE7}.c-coral>.ts{fill:#F5C4B3}
+.c-amber>rect,rect.c-amber{fill:#633806;stroke:#EF9F27}.c-amber>.th{fill:#FAEEDA}.c-amber>.ts{fill:#FAC775}
+.c-gray>rect,rect.c-gray{fill:#444441;stroke:#B4B2A9}.c-gray>.th{fill:#F1EFE8}.c-gray>.ts{fill:#D3D1C7}}
+.node{cursor:default}
+</style>
+<script>function sendPrompt(){}</script>
+</head><body>
+<h2 class="sr-only">순방향 자동미분이 각 연산의 값과 접선을 함께 전달해 방향 미분을 정확히 계산하는 과정과, 흔들어서 잰 근사값을 비교하는 위젯</h2>
+<div style="display:grid;grid-template-columns:auto minmax(0,1fr) 64px;gap:8px 12px;align-items:center;margin:0 0 16px;font-size:14px">
+<label for="ang" style="color:var(--text-secondary)">방향 v 각도</label><input type="range" id="ang" min="0" max="360" step="5" value="55"><span id="angO" style="font-weight:500">55°</span>
+<label for="sg" style="color:var(--text-secondary)">흔드는 폭 σ</label><input type="range" id="sg" min="0.01" max="0.5" step="0.01" value="0.1"><span id="sgO" style="font-weight:500">0.10</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+<div style="border:0.5px solid var(--border);border-radius:12px;padding:10px 12px"><div style="font-size:13px;color:var(--text-secondary)">입력 w₁, w₂</div><div id="n0" style="font-size:14px;font-family:var(--font-mono);margin-top:4px"></div></div>
+<div style="border:0.5px solid var(--border);border-radius:12px;padding:10px 12px"><div style="font-size:13px;color:var(--text-secondary)">u = w₁·w₂</div><div id="n1" style="font-size:14px;font-family:var(--font-mono);margin-top:4px"></div></div>
+<div style="border:0.5px solid var(--border);border-radius:12px;padding:10px 12px"><div style="font-size:13px;color:var(--text-secondary)">e = u − 1</div><div id="n2" style="font-size:14px;font-family:var(--font-mono);margin-top:4px"></div></div>
+<div style="border:2px solid var(--border-accent);border-radius:12px;padding:10px 12px"><div style="font-size:13px;color:var(--text-secondary)">L = e²</div><div id="n3" style="font-size:14px;font-family:var(--font-mono);margin-top:4px"></div></div>
+</div>
+<div style="font-size:13px;color:var(--text-secondary);margin:8px 0 16px">각 칸 = (값, 접선). 접선은 "v 방향으로 아주 조금 움직이면 이 값이 얼마나 변하나"입니다.</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px"><div style="font-size:13px;color:var(--text-secondary)">순방향 모드 ∇L·v (정확)</div><div id="fm" style="font-size:22px;font-weight:500;color:#534AB7"></div></div>
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px"><div style="font-size:13px;color:var(--text-secondary)">흔들어서 잰 값 (전진 차분)</div><div id="fd" style="font-size:22px;font-weight:500;color:#D85A30"></div></div>
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px"><div style="font-size:13px;color:var(--text-secondary)">추정 기울기 ĝ = (∇L·v)·v</div><div id="gh" style="font-size:18px;font-weight:500"></div></div>
+</div>
+<div style="font-size:13px;color:var(--text-secondary);margin-top:10px">정답 기울기 ∇L = (2, 4). 방향 하나의 ĝ는 정답의 한 방향 성분만 담습니다.</div>
+<script>
+const w1=2,w2=1,L=(a,b)=>(a*b-1)**2;
+const f=x=>(Math.abs(x)<5e-4?0:x).toFixed(3);
+function upd(){
+const a=+document.getElementById('ang').value*Math.PI/180,s=+document.getElementById('sg').value;
+document.getElementById('angO').textContent=document.getElementById('ang').value+'°';
+document.getElementById('sgO').textContent=s.toFixed(2);
+const v1=Math.cos(a),v2=Math.sin(a);
+const u=w1*w2,ut=v1*w2+w1*v2,e=u-1,et=ut,Lv=e*e,Lt=2*e*et;
+document.getElementById('n0').innerHTML='('+w1+', '+f(v1)+')<br>('+w2+', '+f(v2)+')';
+document.getElementById('n1').textContent='('+u+', '+f(ut)+')';
+document.getElementById('n2').textContent='('+e+', '+f(et)+')';
+document.getElementById('n3').textContent='('+Lv+', '+f(Lt)+')';
+document.getElementById('fm').textContent=f(Lt);
+document.getElementById('fd').textContent=f((L(w1+s*v1,w2+s*v2)-L(w1,w2))/s);
+document.getElementById('gh').textContent='('+f(Lt*v1)+', '+f(Lt*v2)+')';
+}
+document.getElementById('ang').addEventListener('input',upd);
+document.getElementById('sg').addEventListener('input',upd);
+upd();
+</script>
+
+</body></html>

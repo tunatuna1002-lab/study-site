@@ -1,0 +1,21 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer>
+	<p>© {year} · 직접 쓴 설명과 직접 만든 위젯 · <a href="https://astro.build">Astro</a>로 만듦</p>
+</footer>
+
+<style>
+	footer {
+		max-width: var(--page);
+		margin: 96px auto 0;
+		padding: 24px var(--gutter) 48px;
+		border-top: 1px solid var(--border);
+		color: var(--text-3);
+		font-size: 14px;
+	}
+	a {
+		color: inherit;
+	}
+</style>

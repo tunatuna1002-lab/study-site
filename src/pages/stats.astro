@@ -1,0 +1,237 @@
+---
+import Base from '../layouts/Base.astro';
+import { getNotes, todayKST, ymd } from '../lib/notes';
+
+const notes = await getNotes();
+
+// minutes and note count per day
+const perDay = new Map<string, { minutes: number; count: number }>();
+for (const n of notes) {
+	const d = perDay.get(ymd(n.data.date)) ?? { minutes: 0, count: 0 };
+	d.minutes += n.data.minutes ?? 0;
+	d.count += 1;
+	perDay.set(ymd(n.data.date), d);
+}
+
+// 53 weeks ending today (Korea time), columns are weeks starting on Sunday.
+const today = new Date(`${todayKST()}T00:00:00Z`);
+const start = new Date(today);
+start.setUTCDate(start.getUTCDate() - 52 * 7 - today.getUTCDay());
+const cells: { date: string; minutes: number; count: number; level: number }[] = [];
+for (let d = new Date(start); d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
+	const key = ymd(d);
+	const { minutes = 0, count = 0 } = perDay.get(key) ?? {};
+	const level = minutes >= 120 ? 4 : minutes >= 60 ? 3 : minutes >= 30 ? 2 : minutes > 0 ? 1 : 0;
+	cells.push({ date: key, minutes, count, level });
+}
+const weeks = Math.ceil(cells.length / 7);
+const monthLabels = cells
+	.map((c, i) => ({ col: Math.floor(i / 7) + 1, date: c.date }))
+	.filter(({ date }, i) => date.endsWith('-01') || i === 0)
+	.map(({ col, date }) => ({ col, label: `${Number(date.slice(5, 7))}월` }))
+	.filter((m, i, all) => i === all.length - 1 || all[i + 1].col - m.col >= 3);
+
+// Totals and streaks (a day counts if it has a note).
+const totalMinutes = notes.reduce((s, n) => s + (n.data.minutes ?? 0), 0);
+const activeDays = [...perDay.keys()].sort();
+let longest = 0;
+let run = 0;
+let prev = '';
+for (const d of activeDays) {
+	const p = new Date(`${d}T00:00:00Z`);
+	p.setUTCDate(p.getUTCDate() - 1);
+	run = prev === ymd(p) ? run + 1 : 1;
+	longest = Math.max(longest, run);
+	prev = d;
+}
+let current = 0;
+for (const d = new Date(today); perDay.has(ymd(d)); d.setUTCDate(d.getUTCDate() - 1)) current++;
+if (current === 0) {
+	// Today not logged yet: count the streak ending yesterday.
+	for (const d = new Date(today.getTime() - 86400000); perDay.has(ymd(d)); d.setUTCDate(d.getUTCDate() - 1)) current++;
+}
+
+const topicMinutes = new Map<string, number>();
+for (const n of notes) for (const t of n.data.topics) topicMinutes.set(t, (topicMinutes.get(t) ?? 0) + (n.data.minutes ?? 0));
+const topics = [...topicMinutes].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 12);
+const maxTopic = Math.max(1, ...topics.map(([, m]) => m));
+const hours = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${m}분`);
+---
+
+<Base title="학습 통계" description="일별 학습 시간 히트맵과 누적 통계">
+	<div class="container">
+		<div class="narrow">
+			<h1 class="page-title">학습 통계</h1>
+			<p class="page-lead">노트 프론트매터의 <code>minutes</code>를 날짜별로 더했습니다.</p>
+
+			<section class="summary">
+				<div><span>누적 학습</span><strong>{hours(totalMinutes)}</strong></div>
+				<div><span>공부한 날</span><strong>{activeDays.length}일</strong></div>
+				<div><span>현재 연속</span><strong>{current}일</strong></div>
+				<div><span>최장 연속</span><strong>{longest}일</strong></div>
+			</section>
+		</div>
+
+		<section class="heatmap-wrap" aria-label="일별 학습 시간 히트맵">
+			<div class="heatmap" style={`--weeks:${weeks}`}>
+				{monthLabels.map((m) => <span class="month" style={`grid-column:${m.col + 1}`}>{m.label}</span>)}
+				<span class="wd" style="grid-row:3">월</span>
+				<span class="wd" style="grid-row:5">수</span>
+				<span class="wd" style="grid-row:7">금</span>
+				{
+					cells.map((c, i) => (
+						<span
+							class:list={['cell', `l${c.level}`, { noted: c.count > 0 && c.minutes === 0 }]}
+							style={`grid-column:${Math.floor(i / 7) + 2};grid-row:${(i % 7) + 2}`}
+							title={`${c.date} · ${c.minutes}분 · 노트 ${c.count}개`}
+						/>
+					))
+				}
+			</div>
+			<div class="legend">
+				<span>적게</span>
+				<span class="cell l0" /><span class="cell l1" /><span class="cell l2" /><span class="cell l3" /><span class="cell l4" />
+				<span>많이</span>
+				<span class="cell l0 noted" /><span>노트는 있지만 시간 0분</span>
+			</div>
+		</section>
+
+		<div class="narrow">
+			<h2>개념별 학습 시간</h2>
+			{
+				topics.length === 0 ? (
+					<p class="muted">아직 기록이 없습니다.</p>
+				) : (
+					<ul class="bars">
+						{topics.map(([name, m]) => (
+							<li>
+								<span class="name">{name}</span>
+								<span class="bar">
+									<span style={`width:${(m / maxTopic) * 100}%`} />
+								</span>
+								<span class="val">{m}분</span>
+							</li>
+						))}
+					</ul>
+				)
+			}
+		</div>
+	</div>
+</Base>
+
+<style>
+	.summary {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+		gap: 10px;
+	}
+	.summary div {
+		display: flex;
+		flex-direction: column;
+		padding: 14px 16px;
+		background: var(--surface);
+		border-radius: 10px;
+		line-height: 1.4;
+	}
+	.summary span {
+		font-size: 13px;
+		color: var(--text-2);
+	}
+	.summary strong {
+		font-size: 1.35rem;
+		margin-top: 4px;
+	}
+	.heatmap-wrap {
+		margin: 40px auto;
+		max-width: var(--wide);
+		overflow-x: auto;
+		padding-bottom: 8px;
+	}
+	.heatmap {
+		display: grid;
+		grid-template-columns: 24px repeat(var(--weeks), 13px);
+		grid-template-rows: 18px repeat(7, 13px);
+		gap: 3px;
+		width: max-content;
+		margin: 0 auto;
+		font-size: 11px;
+		line-height: 1;
+		color: var(--text-3);
+	}
+	.month {
+		grid-row: 1;
+		white-space: nowrap;
+	}
+	.wd {
+		grid-column: 1;
+		align-self: center;
+	}
+	.cell {
+		display: inline-block;
+		width: 13px;
+		height: 13px;
+		border-radius: 3px;
+		background: var(--heat-0);
+	}
+	.l1 {
+		background: var(--heat-1);
+	}
+	.l2 {
+		background: var(--heat-2);
+	}
+	.l3 {
+		background: var(--heat-3);
+	}
+	.l4 {
+		background: var(--heat-4);
+	}
+	.noted {
+		box-shadow: inset 0 0 0 1.5px var(--accent);
+	}
+	.legend {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 4px;
+		margin-top: 10px;
+		font-size: 12px;
+		color: var(--text-3);
+	}
+	.legend .noted {
+		margin-left: 16px;
+	}
+	h2 {
+		font-size: 1.15rem;
+	}
+	.bars {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+	.bars li {
+		display: grid;
+		grid-template-columns: minmax(90px, 160px) 1fr 56px;
+		gap: 12px;
+		align-items: center;
+		padding: 4px 0;
+		font-size: 15px;
+	}
+	.bar {
+		height: 10px;
+		background: var(--surface);
+		border-radius: 5px;
+		overflow: hidden;
+	}
+	.bar span {
+		display: block;
+		height: 100%;
+		background: var(--accent);
+		border-radius: 5px;
+	}
+	.val {
+		text-align: right;
+		color: var(--text-2);
+		font-variant-numeric: tabular-nums;
+	}
+</style>

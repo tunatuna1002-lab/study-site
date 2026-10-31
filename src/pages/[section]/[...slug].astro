@@ -1,0 +1,274 @@
+---
+import 'katex/dist/katex.min.css';
+import { render } from 'astro:content';
+import NoteMeta from '../../components/NoteMeta.astro';
+import { STAGES } from '../../consts';
+import Base from '../../layouts/Base.astro';
+import { type Note, backlinks, getNotes, makeLinker, outgoing, sectionOf, urlOf } from '../../lib/notes';
+
+// One route for every vault section: /sessions/…, /concepts/…, /essays/…
+export async function getStaticPaths() {
+	const notes = await getNotes();
+	return notes.map((note) => ({
+		params: { section: sectionOf(note), slug: note.id.split('/').slice(1).join('/') },
+		props: { note, notes },
+	}));
+}
+
+interface Props {
+	note: Note;
+	notes: Note[];
+}
+
+const { note, notes } = Astro.props;
+const { data } = note;
+const { Content, headings } = await render(note);
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+
+const link = makeLinker(notes);
+const topics = data.topics.map((name) => ({ name, note: link(name) }));
+// Concept notes linked from the body but not listed in `topics`.
+const mentioned = [...outgoing(note, link)].filter(
+	(n) => n.data.type === 'concept' && !data.topics.some((t) => link(t)?.id === n.id),
+);
+const linkedFrom = backlinks(note, notes, link);
+const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단계`;
+---
+
+<Base title={data.title}>
+	<div class="note-grid">
+		<article>
+			<header class="note-head">
+				<div class="meta"><NoteMeta note={note} /></div>
+				<h1>{data.title}</h1>
+				{
+					(topics.length > 0 || data.stage.length > 0) && (
+						<div class="chips">
+							{data.stage.map((n) => (
+								<a class="chip" href={`/map/#stage-${n}`}>
+									{n}. {stageName(n)}
+								</a>
+							))}
+							{topics.map((t) => (t.note ? <a class="chip accent" href={urlOf(t.note)}>{t.name}</a> : <span class="chip">{t.name}</span>))}
+						</div>
+					)
+				}
+				{
+					data.original && (
+						<p class="original">
+							원문: <a href={data.original}>{data.original}</a>
+						</p>
+					)
+				}
+			</header>
+
+			{
+				toc.length > 0 && (
+					<details class="toc-inline">
+						<summary>목차</summary>
+						<ol>
+							{toc.map((h) => (
+								<li class={`d${h.depth}`}>
+									<a href={`#${h.slug}`}>{h.text}</a>
+								</li>
+							))}
+						</ol>
+					</details>
+				)
+			}
+
+			<div class="prose">
+				<Content />
+			</div>
+
+			<section class="related">
+				<h2>이 글의 개념</h2>
+				{
+					topics.length === 0 && mentioned.length === 0 ? (
+						<p class="muted">연결된 개념이 아직 없습니다.</p>
+					) : (
+						<ul>
+							{topics.map((t) =>
+								t.note ? (
+									<li>
+										<a href={urlOf(t.note)}>{t.note.data.title}</a>
+									</li>
+								) : (
+									<li>
+										{t.name} <span class="muted">· 아직 노트 없음</span>
+									</li>
+								),
+							)}
+							{mentioned.map((n) => (
+								<li>
+									<a href={urlOf(n)}>{n.data.title}</a> <span class="muted">· 본문 링크</span>
+								</li>
+							))}
+						</ul>
+					)
+				}
+				{
+					linkedFrom.length > 0 && (
+						<>
+							<h2>이 노트를 가리키는 글</h2>
+							<ul>
+								{linkedFrom.map((n) => (
+									<li>
+										<a href={urlOf(n)}>{n.data.title}</a>
+									</li>
+								))}
+							</ul>
+						</>
+					)
+				}
+			</section>
+		</article>
+
+		{
+			toc.length > 0 && (
+				<nav class="toc-side" aria-label="목차">
+					<p>목차</p>
+					<ol>
+						{toc.map((h) => (
+							<li class={`d${h.depth}`}>
+								<a href={`#${h.slug}`}>{h.text}</a>
+							</li>
+						))}
+					</ol>
+				</nav>
+			)
+		}
+	</div>
+</Base>
+
+<script>
+	// Widgets are same-origin, so size each iframe to its content (no inner scrollbar, no cut-off).
+	function fit(frame: HTMLIFrameElement) {
+		const body = frame.contentDocument?.body;
+		if (!body) return;
+		const style = frame.contentWindow!.getComputedStyle(body);
+		const h = body.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+		if (h > 0) frame.style.height = `${Math.ceil(h) + 2}px`;
+	}
+	for (const frame of document.querySelectorAll<HTMLIFrameElement>('.prose iframe')) {
+		const attach = () => {
+			fit(frame);
+			const body = frame.contentDocument?.body;
+			if (body) new ResizeObserver(() => fit(frame)).observe(body);
+		};
+		frame.addEventListener('load', attach);
+		if (frame.contentDocument?.readyState === 'complete' && frame.contentDocument.body?.childElementCount) attach();
+	}
+
+	// Highlight the current section in the side table of contents.
+	const tocLinks = new Map(
+		[...document.querySelectorAll<HTMLAnchorElement>('.toc-side a')].map((a) => [decodeURIComponent(a.hash.slice(1)), a]),
+	);
+	const observer = new IntersectionObserver(
+		(entries) => {
+			for (const e of entries) {
+				if (!e.isIntersecting) continue;
+				tocLinks.forEach((a) => a.classList.remove('active'));
+				tocLinks.get(e.target.id)?.classList.add('active');
+			}
+		},
+		{ rootMargin: '0px 0px -75% 0px' },
+	);
+	document.querySelectorAll('.prose h2[id], .prose h3[id]').forEach((h) => observer.observe(h));
+</script>
+
+<style>
+	.note-grid {
+		max-width: var(--prose);
+		margin: 0 auto;
+	}
+	.note-head {
+		margin: 56px 0 32px;
+	}
+	.note-head h1 {
+		font-size: 2.1rem;
+		margin: 8px 0 16px;
+	}
+	.note-head .meta {
+		display: flex;
+		gap: 12px;
+		align-items: center;
+		color: var(--text-3);
+		font-size: 14px;
+	}
+	.original {
+		margin: 12px 0 0;
+		font-size: 14px;
+		color: var(--text-3);
+		overflow-wrap: anywhere;
+	}
+	.toc-inline {
+		margin: 0 0 32px;
+		padding: 12px 16px;
+		background: var(--surface);
+		border-radius: 10px;
+		font-size: 15px;
+	}
+	.toc-inline summary {
+		cursor: pointer;
+		color: var(--text-2);
+	}
+	ol {
+		list-style: none;
+		margin: 8px 0 0;
+		padding: 0;
+		line-height: 1.6;
+	}
+	ol li {
+		margin: 4px 0;
+	}
+	ol li.d3 {
+		padding-left: 14px;
+		font-size: 0.93em;
+	}
+	ol a {
+		color: var(--text-2);
+		text-decoration: none;
+	}
+	ol a:hover,
+	ol a.active {
+		color: var(--accent);
+	}
+	.toc-side {
+		display: none;
+	}
+	/* Wide screens: the table of contents sits in the left margin, clear of the wide widgets. */
+	@media (min-width: 1400px) {
+		.toc-inline {
+			display: none;
+		}
+		.toc-side {
+			display: block;
+			position: fixed;
+			top: 96px;
+			left: 32px;
+			width: 190px;
+			max-height: calc(100vh - 140px);
+			overflow-y: auto;
+			font-size: 14px;
+		}
+		.toc-side p {
+			margin: 0;
+			font-weight: 600;
+			color: var(--text-2);
+		}
+	}
+	.related {
+		margin-top: 72px;
+		padding-top: 8px;
+		border-top: 1px solid var(--border);
+	}
+	.related h2 {
+		font-size: 1.1rem;
+		margin: 24px 0 8px;
+	}
+	.related ul {
+		margin: 0;
+		padding-left: 1.2em;
+	}
+</style>

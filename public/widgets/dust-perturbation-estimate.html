@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DUST 섭동 추정</title>
+<style>
+:root{--text-primary:#1f1e1d;--text-secondary:#5f5e5a;--text-muted:#888780;--border:rgba(31,30,29,.12);--border-strong:rgba(31,30,29,.22);--border-accent:#378ADD;--bg-accent:#E6F1FB;--text-accent:#185FA5;--surface-1:#F5F4EF;--surface-2:#ffffff;--radius:8px;--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;--t:#5f5e5a}
+@media (prefers-color-scheme:dark){:root{--text-primary:#ecebe6;--text-secondary:#b4b2a9;--text-muted:#888780;--border:rgba(236,235,230,.14);--border-strong:rgba(236,235,230,.26);--bg-accent:#0C447C;--text-accent:#B5D4F4;--surface-1:#262624;--surface-2:#1f1e1d;--t:#b4b2a9}body{background:#191918}}
+body{margin:0;padding:16px;font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Noto Sans CJK KR",system-ui,sans-serif;color:var(--text-primary);background:var(--surface-2);font-size:16px;line-height:1.6}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+button{font:inherit;font-size:14px;padding:6px 12px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:transparent;color:var(--text-primary);cursor:pointer}
+input[type=range]{accent-color:#534AB7}
+svg text{font-family:inherit}
+.t{font-size:14px;fill:var(--text-primary)}.ts{font-size:12px;fill:var(--text-secondary)}.th{font-size:14px;font-weight:500;fill:var(--text-primary)}
+.box{fill:var(--surface-1);stroke:var(--border-strong)}
+.arr{stroke:var(--text-secondary);stroke-width:1.5;fill:none}
+.leader{stroke:var(--text-muted);stroke-width:.5;stroke-dasharray:3 3;fill:none}
+.c-purple>rect,rect.c-purple{fill:#EEEDFE;stroke:#534AB7}.c-purple>.th{fill:#3C3489}.c-purple>.ts{fill:#534AB7}
+.c-teal>rect,rect.c-teal{fill:#E1F5EE;stroke:#0F6E56}.c-teal>.th{fill:#085041}.c-teal>.ts{fill:#0F6E56}
+.c-coral>rect,rect.c-coral{fill:#FAECE7;stroke:#993C1D}.c-coral>.th{fill:#712B13}.c-coral>.ts{fill:#993C1D}
+.c-amber>rect,rect.c-amber{fill:#FAEEDA;stroke:#854F0B}.c-amber>.th{fill:#633806}.c-amber>.ts{fill:#854F0B}
+.c-gray>rect,rect.c-gray{fill:#F1EFE8;stroke:#5F5E5A}.c-gray>.th{fill:#444441}.c-gray>.ts{fill:#5F5E5A}
+@media (prefers-color-scheme:dark){
+.c-purple>rect,rect.c-purple{fill:#3C3489;stroke:#AFA9EC}.c-purple>.th{fill:#EEEDFE}.c-purple>.ts{fill:#CECBF6}
+.c-teal>rect,rect.c-teal{fill:#085041;stroke:#5DCAA5}.c-teal>.th{fill:#E1F5EE}.c-teal>.ts{fill:#9FE1CB}
+.c-coral>rect,rect.c-coral{fill:#712B13;stroke:#F0997B}.c-coral>.th{fill:#FAECE7}.c-coral>.ts{fill:#F5C4B3}
+.c-amber>rect,rect.c-amber{fill:#633806;stroke:#EF9F27}.c-amber>.th{fill:#FAEEDA}.c-amber>.ts{fill:#FAC775}
+.c-gray>rect,rect.c-gray{fill:#444441;stroke:#B4B2A9}.c-gray>.th{fill:#F1EFE8}.c-gray>.ts{fill:#D3D1C7}}
+.node{cursor:default}
+</style>
+<script>function sendPrompt(){}</script>
+</head><body>
+<h2 class="sr-only">개체군 크기 K에 따라 잡음 방향의 보상 가중 평균이 실제 기울기 하강 방향에 가까워지는 모습을 보여 주는 위젯</h2>
+<div style="display:flex;align-items:center;gap:12px;margin:0 0 12px;flex-wrap:wrap">
+<label style="font-size:14px;color:var(--text-secondary)" for="ks">개체군 K</label>
+<input type="range" id="ks" min="0" max="6" step="1" value="2" style="flex:1;min-width:160px">
+<span id="kout" style="font-size:14px;font-weight:500;min-width:36px">8</span>
+<button id="re" type="button">다시 뽑기</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:0 0 12px">
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px"><div style="font-size:13px;color:var(--text-secondary)">추정 방향과 실제 방향의 코사인</div><div id="cosv" style="font-size:24px;font-weight:500">0.00</div></div>
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px"><div style="font-size:13px;color:var(--text-secondary)">손실을 낮춘 잡음 / 높인 잡음</div><div id="cnt" style="font-size:24px;font-weight:500">0 / 0</div></div>
+</div>
+<svg width="100%" viewBox="0 0 680 340" role="img"><title>잡음 방향과 추정 기울기</title><desc>원점에서 뻗은 무작위 잡음 화살표와 실제 하강 방향, 추정 하강 방향</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g id="noise"></g>
+<line id="tl" x1="340" y1="170" x2="340" y2="170" stroke="var(--text-secondary)" stroke-width="2.5" marker-end="url(#arrow)"/>
+<line id="el" x1="340" y1="170" x2="340" y2="170" stroke="#534AB7" stroke-width="4" marker-end="url(#arrow)"/>
+<circle cx="340" cy="170" r="3" fill="var(--text-primary)"/>
+</svg>
+<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary);margin-top:8px">
+<span><span style="display:inline-block;width:18px;height:3px;background:var(--text-secondary);vertical-align:middle;margin-right:6px"></span>실제 하강 방향 −g</span>
+<span><span style="display:inline-block;width:18px;height:4px;background:#534AB7;vertical-align:middle;margin-right:6px"></span>DUST 추정 하강 방향 −ĝ</span>
+<span><span style="display:inline-block;width:18px;height:2px;background:#1D9E75;vertical-align:middle;margin-right:6px"></span>손실을 낮춘 잡음</span>
+<span><span style="display:inline-block;width:18px;height:0;border-top:2px dashed #D85A30;vertical-align:middle;margin-right:6px"></span>손실을 높인 잡음(뒤집어 반영)</span>
+</div>
+<script>
+const KS=[2,4,8,16,64,256,1024];
+const O={x:340,y:170};
+const g=[0.6,0.8];
+const ks=document.getElementById('ks');
+function gauss(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function draw(){
+const K=KS[+ks.value];
+document.getElementById('kout').textContent=K;
+const A=[];for(let i=0;i<K;i++)A.push([gauss(),gauss()]);
+const d=A.map(a=>a[0]*g[0]+a[1]*g[1]);
+const m=d.reduce((s,v)=>s+v,0)/K;
+let e=[0,0];
+A.forEach((a,i)=>{const c=d[i]-m;e[0]+=c*a[0]/K;e[1]+=c*a[1]/K;});
+let h='';let good=0,bad=0;
+const op=K>=256?0.25:(K>=64?0.4:0.7);
+A.slice(0,Math.min(K,400)).forEach((a,i)=>{
+let L=Math.hypot(a[0],a[1]);let s=L>2.6?2.6/L:1;
+const x2=O.x+48*a[0]*s,y2=O.y-48*a[1]*s;
+const isGood=d[i]<0;
+h+='<line x1="'+O.x+'" y1="'+O.y+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+(isGood?'#1D9E75':'#D85A30')+'" stroke-width="1.2" opacity="'+op+'"'+(isGood?'':' stroke-dasharray="4 3"')+'/>';
+});
+d.forEach(v=>{if(v<0)good++;else bad++;});
+document.getElementById('noise').innerHTML=h;
+const R=140;
+const t=document.getElementById('tl');
+t.setAttribute('x2',(O.x-R*g[0]).toFixed(1));t.setAttribute('y2',(O.y+R*g[1]).toFixed(1));
+const en=Math.hypot(e[0],e[1])||1;
+const el=document.getElementById('el');
+el.setAttribute('x2',(O.x-R*e[0]/en).toFixed(1));el.setAttribute('y2',(O.y+R*e[1]/en).toFixed(1));
+document.getElementById('cosv').textContent=((e[0]*g[0]+e[1]*g[1])/en).toFixed(2);
+document.getElementById('cnt').textContent=good+' / '+bad;
+}
+ks.addEventListener('input',draw);
+document.getElementById('re').addEventListener('click',draw);
+draw();
+</script>
+
+</body></html>

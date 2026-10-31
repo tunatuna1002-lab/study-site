@@ -1,0 +1,127 @@
+---
+import NoteMeta from '../components/NoteMeta.astro';
+import { STAGES } from '../consts';
+import Base from '../layouts/Base.astro';
+import { getNotes, makeLinker, urlOf } from '../lib/notes';
+
+const notes = await getNotes();
+const mapNote = makeLinker(notes)('딥러닝 학습 과정 지도');
+const unplaced = notes.filter((n) => n.data.stage.length === 0 && n.id !== mapNote?.id);
+---
+
+<Base title="학습 과정 지도" description="딥러닝 학습 단계(0~8)별로 분류한 노트">
+	<div class="narrow">
+		<h1 class="page-title">학습 과정 지도</h1>
+		<p class="page-lead">
+			노트를 딥러닝 학습 단계(<code>stage</code>)로 나눴습니다. 2~5단계가 학습 1스텝입니다.
+			{mapNote && <> 설명과 위젯: <a href={urlOf(mapNote)}>{mapNote.data.title}</a></>}
+		</p>
+
+		<ol class="stages">
+			{
+				STAGES.map((s) => {
+					const items = notes.filter((n) => n.data.stage.includes(s.n));
+					return (
+						<li id={`stage-${s.n}`} class:list={{ step: s.n >= 2 && s.n <= 5, empty: items.length === 0 }}>
+							<div class="head">
+								<span class="n">{s.n}</span>
+								<div>
+									<h2>{s.name}</h2>
+									<p class="muted">{s.desc}</p>
+								</div>
+							</div>
+							{items.length > 0 && (
+								<ul class="note-list">
+									{items.map((n) => (
+										<li>
+											<a class="title" href={urlOf(n)}>
+												{n.data.title}
+											</a>
+											<div class="meta">
+												<NoteMeta note={n} />
+											</div>
+										</li>
+									))}
+								</ul>
+							)}
+						</li>
+					);
+				})
+			}
+		</ol>
+
+		{
+			unplaced.length > 0 && (
+				<section>
+					<h2 class="unplaced">단계 미지정</h2>
+					<ul class="note-list">
+						{unplaced.map((n) => (
+							<li>
+								<a class="title" href={urlOf(n)}>
+									{n.data.title}
+								</a>
+								<div class="meta">
+									<NoteMeta note={n} />
+								</div>
+							</li>
+						))}
+					</ul>
+				</section>
+			)
+		}
+	</div>
+</Base>
+
+<style>
+	.stages {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+	.stages > li {
+		position: relative;
+		padding: 0 0 28px 0;
+	}
+	.head {
+		display: flex;
+		gap: 14px;
+		align-items: flex-start;
+	}
+	.n {
+		flex: none;
+		width: 34px;
+		height: 34px;
+		border-radius: 50%;
+		display: grid;
+		place-items: center;
+		background: var(--surface);
+		color: var(--text-2);
+		font-weight: 600;
+		font-size: 15px;
+		margin-top: 2px;
+	}
+	.step .n {
+		background: var(--accent-bg);
+		color: var(--accent-text);
+	}
+	h2 {
+		font-size: 1.15rem;
+		margin: 0;
+	}
+	.head p {
+		margin: 0;
+		font-size: 15px;
+	}
+	.empty h2 {
+		color: var(--text-2);
+	}
+	.stages .note-list {
+		margin-left: 48px;
+	}
+	.stages .note-list li {
+		padding: 10px 0;
+	}
+	.unplaced {
+		margin-top: 32px;
+	}
+</style>

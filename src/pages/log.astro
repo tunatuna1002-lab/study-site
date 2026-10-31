@@ -1,0 +1,123 @@
+---
+import { TYPE_LABEL } from '../consts';
+import Base from '../layouts/Base.astro';
+import { getNotes, makeLinker, urlOf, ymd } from '../lib/notes';
+
+const notes = await getNotes();
+const link = makeLinker(notes);
+
+// Group by month, newest first.
+const months = new Map<string, typeof notes>();
+for (const n of notes) {
+	const m = ymd(n.data.date).slice(0, 7);
+	months.set(m, [...(months.get(m) ?? []), n]);
+}
+const monthLabel = (m: string) => `${m.slice(0, 4)}년 ${Number(m.slice(5))}월`;
+---
+
+<Base title="학습 로그" description="날짜별 공부 기록 목록">
+	<div class="narrow">
+		<h1 class="page-title">학습 로그</h1>
+		<p class="page-lead">날짜·제목·개념·학습 시간. 노트 {notes.length}개.</p>
+
+		{
+			[...months].map(([month, items]) => (
+				<section>
+					<h2>
+						{monthLabel(month)}
+						<span class="muted">· {items.reduce((s, n) => s + (n.data.minutes ?? 0), 0)}분</span>
+					</h2>
+					<table>
+						<thead>
+							<tr>
+								<th>날짜</th>
+								<th>제목</th>
+								<th class="num">분</th>
+							</tr>
+						</thead>
+						<tbody>
+							{items.map((n) => (
+								<tr>
+									<td class="date">{ymd(n.data.date).slice(5)}</td>
+									<td>
+										<a href={urlOf(n)}>{n.data.title}</a>
+										<div class="chips">
+											<span class="chip">{TYPE_LABEL[n.data.type]}</span>
+											{n.data.topics.map((t) => {
+												const target = link(t);
+												return target ? (
+													<a class="chip accent" href={urlOf(target)}>
+														{t}
+													</a>
+												) : (
+													<span class="chip">{t}</span>
+												);
+											})}
+										</div>
+									</td>
+									<td class="num">{n.data.minutes ?? '—'}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</section>
+			))
+		}
+	</div>
+</Base>
+
+<style>
+	h2 {
+		font-size: 1.15rem;
+		margin: 40px 0 8px;
+	}
+	table {
+		width: 100%;
+		table-layout: fixed;
+		border-collapse: collapse;
+		line-height: 1.5;
+	}
+	th:first-child {
+		width: 64px;
+	}
+	th.num {
+		width: 56px;
+	}
+	th {
+		text-align: left;
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--text-3);
+		padding: 6px 8px;
+		border-bottom: 1px solid var(--border-strong);
+	}
+	td {
+		padding: 12px 8px;
+		border-bottom: 1px solid var(--border);
+		vertical-align: top;
+	}
+	td a {
+		color: var(--text);
+		font-weight: 600;
+		text-decoration: none;
+	}
+	td a:hover {
+		color: var(--accent);
+	}
+	td .chips {
+		margin-top: 6px;
+	}
+	td .chips a {
+		font-weight: 400;
+	}
+	.date {
+		white-space: nowrap;
+		color: var(--text-2);
+		font-variant-numeric: tabular-nums;
+	}
+	.num {
+		text-align: right;
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+	}
+</style>

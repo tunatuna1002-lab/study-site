@@ -1,0 +1,15 @@
+---
+import { STATUS_LABEL, TYPE_LABEL } from '../consts';
+import { type Note, ymd } from '../lib/notes';
+
+interface Props {
+	note: Note;
+}
+
+const { data } = Astro.props.note;
+---
+
+<span class="chip accent">{TYPE_LABEL[data.type]}</span>
+<time datetime={ymd(data.date)}>{ymd(data.date)}</time>
+{data.minutes !== undefined && <span>{data.minutes}분</span>}
+{data.status && data.status !== 'done' && <span>{STATUS_LABEL[data.status]}</span>}

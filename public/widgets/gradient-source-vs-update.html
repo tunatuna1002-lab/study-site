@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>기울기 출처와 갱신</title>
+<style>
+:root{--text-primary:#1f1e1d;--text-secondary:#5f5e5a;--text-muted:#888780;--border:rgba(31,30,29,.12);--border-strong:rgba(31,30,29,.22);--border-accent:#378ADD;--bg-accent:#E6F1FB;--text-accent:#185FA5;--surface-1:#F5F4EF;--surface-2:#ffffff;--radius:8px;--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;--t:#5f5e5a}
+@media (prefers-color-scheme:dark){:root{--text-primary:#ecebe6;--text-secondary:#b4b2a9;--text-muted:#888780;--border:rgba(236,235,230,.14);--border-strong:rgba(236,235,230,.26);--bg-accent:#0C447C;--text-accent:#B5D4F4;--surface-1:#262624;--surface-2:#1f1e1d;--t:#b4b2a9}body{background:#191918}}
+body{margin:0;padding:16px;font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Noto Sans CJK KR",system-ui,sans-serif;color:var(--text-primary);background:var(--surface-2);font-size:16px;line-height:1.6}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+button{font:inherit;font-size:14px;padding:6px 12px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:transparent;color:var(--text-primary);cursor:pointer}
+input[type=range]{accent-color:#534AB7}
+svg text{font-family:inherit}
+.t{font-size:14px;fill:var(--text-primary)}.ts{font-size:12px;fill:var(--text-secondary)}.th{font-size:14px;font-weight:500;fill:var(--text-primary)}
+.box{fill:var(--surface-1);stroke:var(--border-strong)}
+.arr{stroke:var(--text-secondary);stroke-width:1.5;fill:none}
+.leader{stroke:var(--text-muted);stroke-width:.5;stroke-dasharray:3 3;fill:none}
+.c-purple>rect,rect.c-purple{fill:#EEEDFE;stroke:#534AB7}.c-purple>.th{fill:#3C3489}.c-purple>.ts{fill:#534AB7}
+.c-teal>rect,rect.c-teal{fill:#E1F5EE;stroke:#0F6E56}.c-teal>.th{fill:#085041}.c-teal>.ts{fill:#0F6E56}
+.c-coral>rect,rect.c-coral{fill:#FAECE7;stroke:#993C1D}.c-coral>.th{fill:#712B13}.c-coral>.ts{fill:#993C1D}
+.c-amber>rect,rect.c-amber{fill:#FAEEDA;stroke:#854F0B}.c-amber>.th{fill:#633806}.c-amber>.ts{fill:#854F0B}
+.c-gray>rect,rect.c-gray{fill:#F1EFE8;stroke:#5F5E5A}.c-gray>.th{fill:#444441}.c-gray>.ts{fill:#5F5E5A}
+@media (prefers-color-scheme:dark){
+.c-purple>rect,rect.c-purple{fill:#3C3489;stroke:#AFA9EC}.c-purple>.th{fill:#EEEDFE}.c-purple>.ts{fill:#CECBF6}
+.c-teal>rect,rect.c-teal{fill:#085041;stroke:#5DCAA5}.c-teal>.th{fill:#E1F5EE}.c-teal>.ts{fill:#9FE1CB}
+.c-coral>rect,rect.c-coral{fill:#712B13;stroke:#F0997B}.c-coral>.th{fill:#FAECE7}.c-coral>.ts{fill:#F5C4B3}
+.c-amber>rect,rect.c-amber{fill:#633806;stroke:#EF9F27}.c-amber>.th{fill:#FAEEDA}.c-amber>.ts{fill:#FAC775}
+.c-gray>rect,rect.c-gray{fill:#444441;stroke:#B4B2A9}.c-gray>.th{fill:#F1EFE8}.c-gray>.ts{fill:#D3D1C7}}
+.node{cursor:default}
+</style>
+<script>function sendPrompt(){}</script>
+</head><body>
+<h2 class="sr-only">손실 곡선 위에서 미분으로 구한 기울기와 흔들어서 추정한 기울기를 비교하고, 같은 경사하강법 규칙으로 갱신한 결과를 보여 주는 위젯</h2>
+<div style="display:grid;grid-template-columns:auto minmax(0,1fr) 48px;gap:8px 12px;align-items:center;margin:0 0 12px;font-size:14px">
+<label for="w" style="color:var(--text-secondary)">현재 w</label><input type="range" id="w" min="0.5" max="5.5" step="0.1" value="5"><span id="wo" style="font-weight:500">5.0</span>
+<label for="h" style="color:var(--text-secondary)">흔드는 폭 h</label><input type="range" id="h" min="0.1" max="1.5" step="0.1" value="0.1"><span id="ho" style="font-weight:500">0.1</span>
+</div>
+<svg width="100%" viewBox="0 0 680 300" role="img"><title>손실 곡선</title><desc>L(w)=(w-3)^2 곡선 위의 현재 점, 접선, 흔들어 본 두 점</desc>
+<line x1="60" y1="260" x2="640" y2="260" stroke="var(--border-strong)" stroke-width="0.5"/>
+<path id="curve" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"/>
+<line id="tan" stroke="#534AB7" stroke-width="2"/>
+<line id="sec" stroke="#D85A30" stroke-width="2" stroke-dasharray="5 4"/>
+<circle id="pl" r="5" fill="#D85A30"/><circle id="pr" r="5" fill="#D85A30"/>
+<circle id="p" r="6" fill="#534AB7"/>
+<circle id="pn" r="6" fill="none" stroke="#1D9E75" stroke-width="2"/>
+<text class="ts" x="60" y="282">w = 0</text><text class="ts" x="640" y="282" text-anchor="end">w = 6</text>
+</svg>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px">
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px"><div style="font-size:13px;color:var(--text-secondary)">미분으로 구한 g</div><div id="ga" style="font-size:22px;font-weight:500;color:#534AB7">0</div></div>
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px"><div style="font-size:13px;color:var(--text-secondary)">흔들어서 추정한 g</div><div id="ge" style="font-size:22px;font-weight:500;color:#D85A30">0</div></div>
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px"><div style="font-size:13px;color:var(--text-secondary)">갱신 후 w (η = 0.1)</div><div id="wn" style="font-size:22px;font-weight:500;color:#1D9E75">0</div></div>
+</div>
+<div style="font-size:13px;color:var(--text-secondary);margin-top:10px">보라 = 미분 접선 · 주황 점선 = w±h 두 점을 이은 추정 기울기 · 청록 원 = 같은 갱신 규칙으로 옮긴 다음 위치</div>
+<script>
+const L=w=>(w-3)*(w-3);
+const X=w=>60+w/6*580, Y=l=>260-l/9.5*230;
+let d='';for(let i=0;i<=120;i++){const w=i/20;d+=(i?'L':'M')+X(w).toFixed(1)+' '+Y(L(w)).toFixed(1);}
+document.getElementById('curve').setAttribute('d',d);
+function set(id,a){const e=document.getElementById(id);for(const k in a)e.setAttribute(k,a[k]);}
+function upd(){
+const w=+document.getElementById('w').value,h=+document.getElementById('h').value;
+document.getElementById('wo').textContent=w.toFixed(1);document.getElementById('ho').textContent=h.toFixed(1);
+const ga=2*(w-3),ge=(L(w+h)-L(w-h))/(2*h),wn=w-0.1*ge;
+set('p',{cx:X(w),cy:Y(L(w))});
+set('pl',{cx:X(w-h),cy:Y(L(w-h))});set('pr',{cx:X(w+h),cy:Y(L(w+h))});
+set('sec',{x1:X(w-h),y1:Y(L(w-h)),x2:X(w+h),y2:Y(L(w+h))});
+const t=0.9;set('tan',{x1:X(w-t),y1:Y(L(w)-ga*t),x2:X(w+t),y2:Y(L(w)+ga*t)});
+set('pn',{cx:X(wn),cy:Y(L(wn))});
+document.getElementById('ga').textContent=ga.toFixed(2);
+document.getElementById('ge').textContent=ge.toFixed(2);
+document.getElementById('wn').textContent=wn.toFixed(2);
+}
+document.getElementById('w').addEventListener('input',upd);
+document.getElementById('h').addEventListener('input',upd);
+upd();
+</script>
+
+</body></html>

@@ -1,0 +1,83 @@
+---
+import NoteMeta from '../components/NoteMeta.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import Base from '../layouts/Base.astro';
+import { getNotes, todayKST, urlOf, ymd } from '../lib/notes';
+
+const notes = await getNotes();
+const recent = notes.slice(0, 8);
+
+const sessions = notes.filter((n) => n.data.type === 'session');
+const totalMinutes = notes.reduce((s, n) => s + (n.data.minutes ?? 0), 0);
+const days = new Set(notes.map((n) => ymd(n.data.date)));
+const monthAgo = new Date(`${todayKST()}T00:00:00Z`);
+monthAgo.setUTCDate(monthAgo.getUTCDate() - 29);
+const last30 = notes.filter((n) => n.data.date >= monthAgo).reduce((s, n) => s + (n.data.minutes ?? 0), 0);
+const hours = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${m}분`);
+---
+
+<Base>
+	<div class="narrow">
+		<h1 class="page-title">{SITE_TITLE}</h1>
+		<p class="page-lead">{SITE_DESCRIPTION}</p>
+
+		<section class="summary" aria-label="학습 로그 요약">
+			<a href="/log/"><span>세션</span><strong>{sessions.length}</strong></a>
+			<a href="/log/"><span>전체 노트</span><strong>{notes.length}</strong></a>
+			<a href="/stats/"><span>공부한 날</span><strong>{days.size}일</strong></a>
+			<a href="/stats/"><span>최근 30일</span><strong>{hours(last30)}</strong></a>
+			<a href="/stats/"><span>누적</span><strong>{hours(totalMinutes)}</strong></a>
+		</section>
+
+		<h2>최근 글</h2>
+		<ul class="note-list">
+			{
+				recent.map((note) => (
+					<li>
+						<a class="title" href={urlOf(note)}>
+							{note.data.title}
+						</a>
+						<div class="meta">
+							<NoteMeta note={note} />
+						</div>
+					</li>
+				))
+			}
+		</ul>
+		{notes.length > recent.length && <p><a href="/log/">전체 학습 로그 보기 →</a></p>}
+	</div>
+</Base>
+
+<style>
+	.summary {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+		gap: 10px;
+		margin-bottom: 48px;
+	}
+	.summary a {
+		display: flex;
+		flex-direction: column;
+		padding: 14px 16px;
+		background: var(--surface);
+		border-radius: 10px;
+		text-decoration: none;
+		color: var(--text);
+		line-height: 1.4;
+	}
+	.summary a:hover {
+		background: var(--accent-bg);
+	}
+	.summary span {
+		font-size: 13px;
+		color: var(--text-2);
+	}
+	.summary strong {
+		font-size: 1.35rem;
+		margin-top: 4px;
+	}
+	h2 {
+		font-size: 1.2rem;
+		margin: 0 0 4px;
+	}
+</style>
