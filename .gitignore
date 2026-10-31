@@ -27,6 +27,9 @@ pnpm-debug.log*
 # Obsidian (keep settings, ignore per-device state)
 .obsidian/workspace*.json
 .obsidian/cache
+# community plugins are installed and configured per computer (see docs/setup.md)
+.obsidian/plugins/
+.obsidian/community-plugins.json
 .trash/
 
 # reviewer scratch
