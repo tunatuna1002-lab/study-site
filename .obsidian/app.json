@@ -1,0 +1,12 @@
+{
+  "userIgnoreFilters": [
+    "src/",
+    "public/",
+    "node_modules/",
+    "dist/"
+  ],
+  "attachmentFolderPath": "vault/attachments",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "vault/sessions",
+  "alwaysUpdateLinks": true
+}
