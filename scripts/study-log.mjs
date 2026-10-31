@@ -36,18 +36,20 @@ function build() {
 	return r.status === 0;
 }
 
-// pull --rebase --autostash; on any failure leave the tree as it was and return the reason.
+// fetch + pull --rebase --autostash. Returns null on success, else the reason to show the user.
 function pull() {
+	const f = tryGit('fetch', '-q');
+	if (f.status !== 0) return `${f.stdout}${f.stderr}`;
+	// Drafts are ignored files, and git silently overwrites ignored files on checkout.
+	const taken = drafts().filter((p) => tryGit('cat-file', '-e', `@{u}:${p}`).status === 0);
+	if (taken.length) return `다른 컴퓨터에서 같은 이름의 파일이 이미 올라왔습니다. 초안 이름을 바꾸세요: ${taken.join(', ')}`;
 	const r = tryGit('pull', '--rebase', '--autostash');
-	if (r.status !== 0) {
-		const gitPath = (p) => path.resolve(ROOT, git('rev-parse', '--git-path', p));
-		if (fs.existsSync(gitPath('rebase-merge')) || fs.existsSync(gitPath('rebase-apply'))) tryGit('rebase', '--abort');
-		return `${r.stdout}${r.stderr}`;
-	}
-	// The rebase can succeed while re-applying the autostash conflicts.
+	const gitPath = (p) => path.resolve(ROOT, git('rev-parse', '--git-path', p));
+	if (r.status !== 0 && (fs.existsSync(gitPath('rebase-merge')) || fs.existsSync(gitPath('rebase-apply')))) tryGit('rebase', '--abort');
+	// Re-applying the autostash can conflict after the rebase itself finished.
 	const unmerged = lines(tryGit('diff', '--name-only', '--diff-filter=U').stdout);
-	if (unmerged.length) return `자동 보관(autostash)한 변경을 되돌리다 충돌: ${unmerged.join(', ')} (git stash list에 보관본이 남아 있음)`;
-	return null;
+	if (unmerged.length) return `보관(autostash)한 변경을 되돌리다 충돌: ${unmerged.join(', ')}. 보관본은 git stash list에 남아 있습니다. 사용자와 함께 해결하세요.`;
+	return r.status === 0 ? null : `${r.stdout}${r.stderr}`;
 }
 
 // ---- privacy / secret scan ----
@@ -59,8 +61,8 @@ const ERRORS = [
 	['API 키', /\bsk-(ant-)?[A-Za-z0-9_-]{20,}|\bgh[pousr]_[A-Za-z0-9]{30,}|\bgithub_pat_[A-Za-z0-9_]{20,}|\bAKIA[0-9A-Z]{16}\b|\bAIza[0-9A-Za-z_-]{35}|\bxox[abposr]-[A-Za-z0-9-]{10,}|\bnpm_[A-Za-z0-9]{36}\b|\bhf_[A-Za-z0-9]{30,}/],
 	['비밀 키', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
 	['JWT 토큰', /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\./],
-	['비밀값 대입', /(api[_-]?key|secret|token|password|passwd)[A-Za-z_]*["']?\s*[:=]\s*['"]?[A-Za-z0-9_\-/+=]{16,}/i],
-	['계정·서명이 들어간 URL', /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]+@|X-(Amz|Goog)-Signature=|[?&](sig|signature|token|access_token|api_key|apikey|key)=[^&\s]{8,}/i],
+	['비밀값 대입', /\b([a-z]+_)?(api[_-]?key|secret([_-]?access)?[_-]?key|secret|access[_-]?token|auth[_-]?token|token|password|passwd)["']?\s*[:=]\s*['"]?(?=[A-Za-z0-9_\-+=]*\d)[A-Za-z0-9_\-+=]{16,}/i],
+	['계정·서명이 들어간 URL', /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]+@|X-(Amz|Goog)-Signature=|[?&](sig|signature|token|access_token|api_key|apikey)=[^&\s]{16,}/i],
 	['로컬 절대 경로', /(^|[\s"'(=`])(\/Users\/|\/home\/|\/c\/Users\/)[^\s]|\b[A-Za-z]:[\\/]+Users[\\/]/im],
 ];
 const WIDGET_ERRORS = [
