@@ -11,7 +11,7 @@ export default function remarkWikilinks() {
 }
 
 function walk(node, resolve) {
-	if (!node.children || node.type === 'link') return;
+	if (!node.children || node.type === 'link' || node.type === 'linkReference') return;
 	const out = [];
 	for (const child of node.children) {
 		if (child.type === 'text' && child.value.includes('[[')) out.push(...split(child.value, resolve));
@@ -35,9 +35,14 @@ function split(value, resolve) {
 		}
 		const { target, heading, alias } = parseWikiTarget(m[2]);
 		const label = alias || [target, heading].filter(Boolean).join(' › ');
+		if (!label) {
+			nodes.push({ type: 'text', value: m[0] });
+			continue;
+		}
 		const note = target ? resolve(target) : null;
 		const hash = heading ? `#${headingAnchor(heading)}` : '';
-		if (note || !target) {
+		// [[#heading]] links within the same note.
+		if (note || (!target && heading)) {
 			nodes.push({
 				type: 'link',
 				url: (note ? note.url : '') + hash,

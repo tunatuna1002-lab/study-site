@@ -24,7 +24,7 @@ const hours = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}시간 ${m % 60}�
 		<section class="summary" aria-label="학습 로그 요약">
 			<a href="/log/"><span>세션</span><strong>{sessions.length}</strong></a>
 			<a href="/log/"><span>전체 노트</span><strong>{notes.length}</strong></a>
-			<a href="/stats/"><span>공부한 날</span><strong>{days.size}일</strong></a>
+			<a href="/stats/"><span>기록한 날</span><strong>{days.size}일</strong></a>
 			<a href="/stats/"><span>최근 30일</span><strong>{hours(last30)}</strong></a>
 			<a href="/stats/"><span>누적</span><strong>{hours(totalMinutes)}</strong></a>
 		</section>

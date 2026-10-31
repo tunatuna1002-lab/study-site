@@ -1,5 +1,7 @@
 ---
-const year = new Date().getFullYear();
+import { todayKST } from '../lib/notes';
+
+const year = todayKST().slice(0, 4);
 ---
 
 <footer>

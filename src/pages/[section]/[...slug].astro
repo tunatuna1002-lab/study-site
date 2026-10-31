@@ -151,30 +151,38 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 		if (h > 0) frame.style.height = `${Math.ceil(h) + 2}px`;
 	}
 	for (const frame of document.querySelectorAll<HTMLIFrameElement>('.prose iframe')) {
+		let observer: ResizeObserver | undefined;
 		const attach = () => {
+			const doc = frame.contentDocument;
+			if (!doc?.body || doc.URL === 'about:blank') return;
+			observer?.disconnect();
+			observer = new ResizeObserver(() => fit(frame));
+			observer.observe(doc.body);
 			fit(frame);
-			const body = frame.contentDocument?.body;
-			if (body) new ResizeObserver(() => fit(frame)).observe(body);
 		};
 		frame.addEventListener('load', attach);
-		if (frame.contentDocument?.readyState === 'complete' && frame.contentDocument.body?.childElementCount) attach();
+		// The widget may have loaded before this script ran.
+		if (frame.contentDocument?.readyState === 'complete') attach();
 	}
 
-	// Highlight the current section in the side table of contents.
+	// Highlight the current section in the side table of contents:
+	// the last heading above the top quarter of the screen.
 	const tocLinks = new Map(
 		[...document.querySelectorAll<HTMLAnchorElement>('.toc-side a')].map((a) => [decodeURIComponent(a.hash.slice(1)), a]),
 	);
-	const observer = new IntersectionObserver(
-		(entries) => {
-			for (const e of entries) {
-				if (!e.isIntersecting) continue;
-				tocLinks.forEach((a) => a.classList.remove('active'));
-				tocLinks.get(e.target.id)?.classList.add('active');
-			}
-		},
-		{ rootMargin: '0px 0px -75% 0px' },
-	);
-	document.querySelectorAll('.prose h2[id], .prose h3[id]').forEach((h) => observer.observe(h));
+	const tocHeadings = [...document.querySelectorAll<HTMLElement>('.prose h2[id], .prose h3[id]')];
+	let ticking = false;
+	const highlight = () => {
+		ticking = false;
+		const line = window.innerHeight / 4;
+		const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+		const current = atEnd ? tocHeadings.at(-1) : tocHeadings.filter((h) => h.getBoundingClientRect().top < line).at(-1);
+		tocLinks.forEach((a, id) => a.classList.toggle('active', id === current?.id));
+	};
+	if (tocLinks.size) {
+		addEventListener('scroll', () => ticking || ((ticking = true), requestAnimationFrame(highlight)), { passive: true });
+		highlight();
+	}
 </script>
 
 <style>
@@ -238,7 +246,7 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 		display: none;
 	}
 	/* Wide screens: the table of contents sits in the left margin, clear of the wide widgets. */
-	@media (min-width: 1400px) {
+	@media (min-width: 1440px) {
 		.toc-inline {
 			display: none;
 		}
@@ -246,7 +254,8 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 			display: block;
 			position: fixed;
 			top: 96px;
-			left: 32px;
+			/* just left of the wide widgets (960px, centered) */
+			left: max(24px, calc(50% - 480px - 230px));
 			width: 190px;
 			max-height: calc(100vh - 140px);
 			overflow-y: auto;

@@ -29,7 +29,8 @@ const monthLabels = cells
 	.map((c, i) => ({ col: Math.floor(i / 7) + 1, date: c.date }))
 	.filter(({ date }, i) => date.endsWith('-01') || i === 0)
 	.map(({ col, date }) => ({ col, label: `${Number(date.slice(5, 7))}월` }))
-	.filter((m, i, all) => i === all.length - 1 || all[i + 1].col - m.col >= 3);
+	// drop labels that would collide with the next one or run past the last column
+	.filter((m, i, all) => (i === all.length - 1 ? weeks - m.col >= 2 : all[i + 1].col - m.col >= 3));
 
 // Totals and streaks (a day counts if it has a note).
 const totalMinutes = notes.reduce((s, n) => s + (n.data.minutes ?? 0), 0);
@@ -62,11 +63,11 @@ const hours = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}시간 ${m % 60}�
 	<div class="container">
 		<div class="narrow">
 			<h1 class="page-title">학습 통계</h1>
-			<p class="page-lead">노트 프론트매터의 <code>minutes</code>를 날짜별로 더했습니다.</p>
+			<p class="page-lead">노트 프론트매터의 <code>minutes</code>를 날짜별로 더했습니다. 기록한 날·연속 일수는 노트가 있는 날을 셉니다(마지막 빌드 기준).</p>
 
 			<section class="summary">
 				<div><span>누적 학습</span><strong>{hours(totalMinutes)}</strong></div>
-				<div><span>공부한 날</span><strong>{activeDays.length}일</strong></div>
+				<div><span>기록한 날</span><strong>{activeDays.length}일</strong></div>
 				<div><span>현재 연속</span><strong>{current}일</strong></div>
 				<div><span>최장 연속</span><strong>{longest}일</strong></div>
 			</section>

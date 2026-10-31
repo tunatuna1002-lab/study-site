@@ -73,6 +73,8 @@ a {
 }
 main {
 	padding: 0 var(--gutter);
+	/* 100vw in the widget width includes a classic scrollbar; never scroll sideways */
+	overflow-x: clip;
 }
 .container {
 	max-width: var(--page);
