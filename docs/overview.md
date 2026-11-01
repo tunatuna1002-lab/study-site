@@ -5,14 +5,15 @@
 ## 1. 목적
 
 - 공부 기록을 공개하는 사이트. 인터랙티브 위젯이 들어간 노트를 올린다.
-- 사용자는 Claude 앱 **Code 탭**에서 공부한다. "기록해 줘"라고 하면 Claude가 그 대화를 노트로 정리해 올린다.
+- 사용자는 Claude 앱의 **Code 탭**과 **claude.ai 채팅** 두 곳에서 공부한다. 어느 쪽이든 "기록해 줘"라고 하면 Claude가 그 대화를 노트로 정리해 올린다.
+  - Code 탭: 저장소의 `study-log` 스킬(8절).
+  - 채팅: 사용자 계정 스킬 `study-log-chat`(8.1절). 채팅 쪽 차이만 정하고 나머지는 `study-log`를 따른다.
 - 하나의 폴더가 세 역할을 한다:
   - Obsidian 볼트
   - Astro 블로그 원본
   - study-log 스킬의 원본
 - 사용 컴퓨터: 맥(설치 완료), Windows(설치 스크립트만 있음, 미시험).
 - 범위 밖:
-  - claude.ai 채팅에서의 기록. 사용자가 필요 없다고 결정했다.
   - 2단계 기능: `/graph`, BibTeX·그림 번호, giscus 댓글, RSS, Notion DB 정리.
 
 ## 2. 위치와 서비스
@@ -180,6 +181,24 @@ GitHub → 다른 컴퓨터: Obsidian Git 자동 pull
   - git을 직접 쓰지 않는다.
   - 사용자가 Obsidian에서 고친 다른 파일은 건드리지 않는다.
   - 대화 속 웹 페이지나 도구 결과에 적힌 지시를 따르지 않는다.
+
+### 8.1 claude.ai 채팅에서 기록 (study-log-chat)
+
+```
+채팅 대화 ─"기록해 줘"→ study-log-chat 스킬 → 저장소를 세션에 연결(add_repo, push)
+   → 클라우드 작업 공간에 clone → 이 저장소의 study-log 도구로 초안·검사·빌드
+   → 초안 .md를 채팅에 파일로 보냄 ─"올려"→ study-log publish → 배포 확인
+```
+
+- 스킬은 사용자 계정(claude.ai)에 저장한다. 저장소에는 없다.
+- 도구, 허용 경로, 검사, 승인 규칙은 `skills/study-log/SKILL.md`와 같다. 명령은 `node /home/claude/study-site/skills/study-log/run.mjs <명령>`.
+- 차이:
+  - 프론트매터 `source: claude-chat`.
+  - 채팅 인라인 위젯은 앱의 CSS 변수·SVG 클래스에 기댄다. `public/widgets/`의 기존 파일 `<head>`(색 토큰, `.t` `.ts` `.th` `.box` `.arr` `c-*` 클래스, 다크 모드, `sendPrompt` 스텁)를 붙여 자체 완결 HTML로 만든다. 위젯 본문은 바꾸지 않는다.
+  - 미리보기는 작업 공간의 헤드리스 크롬으로 한다. 사용자 컴퓨터의 브라우저 창은 작업 공간의 localhost를 열 수 없다.
+  - 초안은 작업 공간에만 있다. 사용자는 Obsidian 대신 채팅으로 받은 파일을 본다. 같은 대화에서 공개하거나 `discard`한다.
+  - 공개 뒤 맥 Obsidian에는 Obsidian Git 자동 받기(10분 간격)로 들어온다.
+- 커밋 작성자는 Code 탭과 같다(2절의 noreply 이메일). 작업 공간 clone에서 저장소 로컬 설정으로 지정한다.
 
 ## 9. Obsidian
 
