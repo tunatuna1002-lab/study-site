@@ -34,3 +34,7 @@ pnpm-debug.log*
 
 # reviewer scratch
 .agy-review.md
+
+# Private ChatGPT drafts. Never add these to the public repository.
+vault/drafts/
+.local-tools/

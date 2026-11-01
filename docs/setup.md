@@ -52,6 +52,8 @@ curl -fsSL https://raw.githubusercontent.com/tunatuna1002-lab/study-site/main/sc
 
 ## 3. 사용
 
+일반 **ChatGPT**에서 논문을 공부하고 기록하려면 [ChatGPT 연결 안내](./chatgpt.md)를 따른다. "기록해 줘"는 비공개 저장, "올려"는 확인한 초안 버전의 공개다. 아래 내용은 기존 Claude 사용법이다.
+
 Claude 앱 Code 탭에서 공부한 뒤 "기록해 줘"라고 합니다.
 
 1. Claude가 공부 시간을 묻습니다.
