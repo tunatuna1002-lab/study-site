@@ -16,7 +16,12 @@ const published = z.object({
 	status: z.enum(['todo', 'doing', 'done']).optional(),
 	publish: z.literal(true),
 	source: z.string().optional(),
-	original: z.string().url().optional(),
+	// Rendered as a link, so only web addresses (no javascript: or data: URLs).
+	original: z
+		.string()
+		.url()
+		.refine((u) => /^https?:\/\//i.test(u), 'original must be an http(s) URL')
+		.optional(),
 });
 
 const draft = z.object({ publish: z.literal(false) });

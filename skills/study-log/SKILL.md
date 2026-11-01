@@ -95,6 +95,7 @@ original: "<원문 URL, 있을 때만>"
 - 실명, 회사·학교, 연락처, 계정, 지원·채용 현황, 사적인 이야기.
 - API 키, 토큰, 비밀번호, 로컬 경로(`/Users/…`, `C:\Users\…`).
 - 논문 그림, 긴 인용(한두 문장까지, 출처 표기). 직접 쓴 설명과 직접 만든 위젯·그림만 쓴다.
+- 본문 HTML은 허용 목록만 빌드를 통과한다(`<script>`, `on…` 속성, `<svg>`, `<form>` 등은 빌드 실패). 그림은 `vault/attachments/`에 두고 `![설명](../attachments/<파일>.png)`처럼 상대 경로로 넣는다. 외부 그림 주소는 쓸 수 없다.
 
 ## 4. 위젯
 
@@ -103,6 +104,7 @@ original: "<원문 URL, 있을 때만>"
 - `public/widgets/<kebab-name>.html`에 자체 완결 HTML로 저장한다. 기존 `public/widgets/*.html` 하나를 열어 `<head>`의 형식을 따른다: `<!doctype html>`, `lang="ko"`, viewport, `:root` 색 토큰과 `@media (prefers-color-scheme:dark)`, `<script>function sendPrompt(){}</script>` 스텁.
 - 원래 위젯이 앱 쪽 CSS 변수(예: `--color-text-primary`)를 썼으면 파일 안의 `:root`에 값을 정의한다.
 - 외부 스크립트·폰트·이미지 링크, `fetch` 같은 네트워크 요청, `window.parent` 접근을 넣지 않는다. 라이브러리가 꼭 필요하면 위젯을 단순하게 다시 만든다.
+- 위젯은 사이트에서 sandbox로 격리되어 돈다. localStorage·쿠키·팝업(`window.open`, `target="_blank"`)·폼 제출은 동작하지 않으므로 쓰지 않는다.
 - 노트에 넣는 형식:
   ```html
   <iframe src="/widgets/<kebab-name>.html" width="100%" height="520" loading="lazy" style="border:0" title="<위젯 설명>"></iframe>

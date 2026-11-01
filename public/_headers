@@ -1,0 +1,5 @@
+# Cloudflare Pages response headers.
+# Widget files opened directly (not through a note page) also run sandboxed, with no network.
+/widgets/*
+  Content-Security-Policy: sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:
+  X-Content-Type-Options: nosniff

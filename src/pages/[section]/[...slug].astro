@@ -152,28 +152,15 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 </Base>
 
 <script>
-	// Widgets are same-origin, so size each iframe to its content (no inner scrollbar, no cut-off).
-	function fit(frame: HTMLIFrameElement) {
-		const body = frame.contentDocument?.body;
-		if (!body) return;
-		const style = frame.contentWindow!.getComputedStyle(body);
-		const h = body.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-		if (h > 0) frame.style.height = `${Math.ceil(h) + 2}px`;
-	}
-	for (const frame of document.querySelectorAll<HTMLIFrameElement>('.prose iframe')) {
-		let observer: ResizeObserver | undefined;
-		const attach = () => {
-			const doc = frame.contentDocument;
-			if (!doc?.body || doc.URL === 'about:blank') return;
-			observer?.disconnect();
-			observer = new ResizeObserver(() => fit(frame));
-			observer.observe(doc.body);
-			fit(frame);
-		};
-		frame.addEventListener('load', attach);
-		// The widget may have loaded before this script ran.
-		if (frame.contentDocument?.readyState === 'complete') attach();
-	}
+	// Widgets run sandboxed (src/plugins/figures.mjs) and report their own height.
+	// Only a frame on this page can resize itself, and only within sane bounds.
+	const widgets = [...document.querySelectorAll<HTMLIFrameElement>('.prose iframe[data-widget]')];
+	addEventListener('message', (e) => {
+		const h = e.data?.studyWidgetHeight;
+		if (typeof h !== 'number' || !Number.isFinite(h)) return;
+		const frame = widgets.find((f) => f.contentWindow === e.source);
+		if (frame) frame.style.height = `${Math.min(Math.max(Math.ceil(h) + 2, 60), 4000)}px`;
+	});
 
 	// Highlight the current section in the side table of contents:
 	// the last heading above the top quarter of the screen.

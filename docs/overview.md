@@ -121,8 +121,17 @@ original: "https://..."           # 선택, 원문 URL
   - `$$` 수식은 오른쪽에 (N) 번호가 붙는다. `\tag{}`를 쓴 수식은 그 번호만 쓴다.
   - 빌드는 `astro build --force`다. 콘텐츠 캐시를 지워서, 위젯 제목이나 다른 노트가 바뀌어도 캡션과 위키링크가 바로 반영된다.
 - **노트 페이지의 위젯 iframe:**
-  - 같은 출처라서 ResizeObserver로 높이를 자동으로 맞춘다.
-  - sandbox는 쓰지 않는다. 쓰면 높이 자동 조절이 깨진다.
+  - 빌드할 때 위젯 HTML을 `srcdoc`로 넣고 `sandbox="allow-scripts"`(allow-same-origin 없음)를 붙인다(`src/plugins/figures.mjs`). 위젯 스크립트는 별도 출처에서 돌아서 본문 페이지·저장소·쿠키에 닿지 못한다.
+  - 바깥에서 위젯 크기를 잴 수 없으므로, 빌드가 넣은 작은 스크립트가 `postMessage`로 높이를 알리고 노트 페이지가 받아서 맞춘다(60~4000px).
+  - 위젯 문서 맨 앞(빌드가 쓴 doctype 바로 뒤)에 위젯 전용 CSP 메타를 넣는다. `default-src 'none'`에 인라인 스크립트·스타일과 `data:` 그림만 허용해 네트워크·외부 리소스를 막는다.
+  - 페이지 CSP의 `frame-src 'none'`으로 위젯이 자기 프레임을 다른 주소로 이동시키는 것도 막는다(srcdoc 프레임은 이 규칙의 영향을 받지 않는다).
+  - 위젯 안에서는 localStorage·쿠키·팝업·폼 제출이 막힌다. 위젯을 만들 때 쓰지 않는다.
+  - `/widgets/*.html`을 직접 열어도 `public/_headers`의 CSP sandbox로 격리되고 네트워크가 막힌다(Cloudflare Pages가 적용).
+- **빌드 단계 안전 검사** (`src/plugins/content-guard.mjs`, 어기면 빌드 실패 → 공개 불가):
+  - Markdown 그림: `vault/attachments/` 안의 png·jpg·gif·webp 파일을 상대 경로로만. 파일 내용(첫 바이트)도 그 형식이어야 한다(이름만 .png인 SVG 거부). 외부 주소, `?`·`#`, 저장소 밖 경로, 경로 중간의 심볼릭 링크(폴더 자체 포함)는 거부. 참조형 그림은 첫 정의를 검사한다(Astro와 같음). HTML `<img>`는 거부한다(Astro가 처리하지 않아 깨지므로 Markdown 문법만).
+  - HTML: 태그·속성 허용 목록. `<script>`, `on…` 속성, `srcdoc`, `<svg>`, `<form>` 등은 거부. 링크는 http(s)·mailto·상대 경로만. 인라인 style은 단순 속성(border, color, width 등)과 단순 값만 허용(함수·따옴표 거부). 링크의 역슬래시도 거부. iframe은 `/widgets/<이름>.html`(실제 파일)만.
+  - frontmatter `original`은 http(s) 주소만(`src/content.config.ts`).
+  - 배포 페이지에는 CSP 메타 태그가 있다(`BaseHead.astro`, 개발 서버에서는 끔). 외부 연결·외부 그림·폼을 막고, 글꼴 CDN(jsdelivr)만 허용한다.
 - **스타일:**
   - 글꼴은 Pretendard(CDN)다.
   - 다크 모드는 `prefers-color-scheme`를 따른다.
