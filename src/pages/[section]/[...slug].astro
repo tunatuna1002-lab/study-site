@@ -1,10 +1,9 @@
 ---
 import 'katex/dist/katex.min.css';
 import { render } from 'astro:content';
-import NoteMeta from '../../components/NoteMeta.astro';
-import { STAGES } from '../../consts';
+import { STAGES, STATUS_LABEL, TYPE_LABEL } from '../../consts';
 import Base from '../../layouts/Base.astro';
-import { type Note, backlinks, getNotes, makeLinker, outgoing, sectionOf, urlOf } from '../../lib/notes';
+import { type Note, backlinks, getNotes, makeLinker, outgoing, sectionOf, urlOf, ymd } from '../../lib/notes';
 
 // One route for every vault section: /sessions/…, /concepts/…, /essays/…
 export async function getStaticPaths() {
@@ -36,11 +35,32 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 ---
 
 <Base title={data.title}>
-	<div class="note-grid">
+	<div class="note-page">
+		{
+			toc.length > 0 && (
+				<nav class="toc-side" aria-label="목차">
+					<p class="label">목차</p>
+					<ol>
+						{toc.map((h) => (
+							<li class={`d${h.depth}`}>
+								<a href={`#${h.slug}`}>{h.text}</a>
+							</li>
+						))}
+					</ol>
+				</nav>
+			)
+		}
+
 		<article>
 			<header class="note-head">
-				<div class="meta"><NoteMeta note={note} /></div>
+				<p class="label">{TYPE_LABEL[data.type]}</p>
 				<h1>{data.title}</h1>
+				<p class="meta">
+					<time datetime={ymd(data.date)}>{ymd(data.date)}</time>
+					{data.minutes !== undefined && data.minutes > 0 && <span>{data.minutes}분 공부</span>}
+					{data.status && data.status !== 'done' && <span>{STATUS_LABEL[data.status]}</span>}
+					{data.original && <a href={data.original}>원문</a>}
+				</p>
 				{
 					(topics.length > 0 || data.stage.length > 0) && (
 						<div class="chips">
@@ -51,13 +71,6 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 							))}
 							{topics.map((t) => (t.note ? <a class="chip accent" href={urlOf(t.note)}>{t.name}</a> : <span class="chip">{t.name}</span>))}
 						</div>
-					)
-				}
-				{
-					data.original && (
-						<p class="original">
-							원문: <a href={data.original}>{data.original}</a>
-						</p>
 					)
 				}
 			</header>
@@ -82,7 +95,7 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 			</div>
 
 			<section class="related">
-				<h2>이 글의 개념</h2>
+				<h2 class="label">이 글의 개념</h2>
 				{
 					topics.length === 0 && mentioned.length === 0 ? (
 						<p class="muted">연결된 개념이 아직 없습니다.</p>
@@ -110,7 +123,7 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 				{
 					linkedFrom.length > 0 && (
 						<>
-							<h2>이 노트를 가리키는 글</h2>
+							<h2 class="label">이 노트를 가리키는 글</h2>
 							<ul>
 								{linkedFrom.map((n) => (
 									<li>
@@ -121,23 +134,20 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 						</>
 					)
 				}
+				{
+					data.original && (
+						<>
+							<h2 class="label">원문</h2>
+							<p class="original">
+								<a href={data.original}>{data.original}</a>
+							</p>
+						</>
+					)
+				}
 			</section>
-		</article>
 
-		{
-			toc.length > 0 && (
-				<nav class="toc-side" aria-label="목차">
-					<p>목차</p>
-					<ol>
-						{toc.map((h) => (
-							<li class={`d${h.depth}`}>
-								<a href={`#${h.slug}`}>{h.text}</a>
-							</li>
-						))}
-					</ol>
-				</nav>
-			)
-		}
+			<p class="back"><a href="/log/">← 학습 로그</a></p>
+		</article>
 	</div>
 </Base>
 
@@ -186,34 +196,49 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 </script>
 
 <style>
-	.note-grid {
-		max-width: var(--prose);
+	/* Paper-like layout: a sticky outline on the left, one centred column for text and widgets. */
+	.note-page {
+		max-width: var(--note);
 		margin: 0 auto;
 	}
+	.label {
+		margin: 0;
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--text-3);
+	}
 	.note-head {
-		margin: 56px 0 32px;
+		margin: 64px 0 40px;
+		text-align: center;
+	}
+	.note-head .label {
+		color: var(--accent);
 	}
 	.note-head h1 {
-		font-size: 2.1rem;
-		margin: 8px 0 16px;
+		font-size: 2.4rem;
+		line-height: 1.25;
+		letter-spacing: -0.02em;
+		margin: 12px 0 16px;
 	}
 	.note-head .meta {
-		display: flex;
-		gap: 12px;
-		align-items: center;
-		color: var(--text-3);
-		font-size: 14px;
+		margin: 0 0 18px;
+		color: var(--text-2);
+		font-size: 15px;
 	}
-	.original {
-		margin: 12px 0 0;
-		font-size: 14px;
+	.note-head .meta > * + *::before {
+		content: '·';
+		margin: 0 8px;
 		color: var(--text-3);
-		overflow-wrap: anywhere;
+	}
+	.note-head .chips {
+		justify-content: center;
 	}
 	.toc-inline {
 		margin: 0 0 32px;
 		padding: 12px 16px;
-		background: var(--surface);
+		border: 1px solid var(--border);
 		border-radius: 10px;
 		font-size: 15px;
 	}
@@ -225,10 +250,10 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 		list-style: none;
 		margin: 8px 0 0;
 		padding: 0;
-		line-height: 1.6;
+		line-height: 1.5;
 	}
 	ol li {
-		margin: 4px 0;
+		margin: 6px 0;
 	}
 	ol li.d3 {
 		padding-left: 14px;
@@ -245,39 +270,67 @@ const stageName = (n: number) => STAGES.find((s) => s.n === n)?.name ?? `${n}단
 	.toc-side {
 		display: none;
 	}
-	/* Wide screens: the table of contents sits in the left margin, clear of the wide widgets. */
-	@media (min-width: 1440px) {
+	/* Laptop and wider: the outline sits beside the column and follows the scroll. */
+	@media (min-width: 1120px) {
+		.note-page {
+			max-width: calc(var(--note) + 2 * 230px);
+			display: grid;
+			/* the right track only balances the outline, so it takes what is left;
+			   below ~1260px the column sits a little right of centre */
+			grid-template-columns: 200px minmax(0, var(--note)) minmax(0, 1fr);
+			column-gap: 30px;
+		}
 		.toc-inline {
 			display: none;
 		}
 		.toc-side {
 			display: block;
-			position: fixed;
-			top: 96px;
-			/* just left of the wide widgets (960px, centered) */
-			left: max(24px, calc(50% - 480px - 230px));
-			width: 190px;
-			max-height: calc(100vh - 140px);
+			position: sticky;
+			top: 28px;
+			align-self: start;
+			max-height: calc(100vh - 56px);
 			overflow-y: auto;
-			font-size: 14px;
+			margin-top: 64px;
+			font-size: 13.5px;
 		}
-		.toc-side p {
-			margin: 0;
-			font-weight: 600;
-			color: var(--text-2);
+		article {
+			grid-column: 2;
 		}
 	}
 	.related {
 		margin-top: 72px;
 		padding-top: 8px;
 		border-top: 1px solid var(--border);
+		font-size: 15px;
 	}
 	.related h2 {
-		font-size: 1.1rem;
-		margin: 24px 0 8px;
+		margin: 28px 0 8px;
 	}
 	.related ul {
 		margin: 0;
 		padding-left: 1.2em;
+	}
+	.original {
+		margin: 0;
+		overflow-wrap: anywhere;
+	}
+	.back {
+		margin: 48px 0 0;
+		font-size: 15px;
+	}
+	.back a {
+		color: var(--text-2);
+		text-decoration: none;
+	}
+	.back a:hover {
+		color: var(--accent);
+	}
+	@media (max-width: 600px) {
+		.note-head {
+			margin-top: 40px;
+		}
+		.note-head h1 {
+			font-size: 1.8rem;
+		}
 	}
 </style>

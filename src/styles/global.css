@@ -2,6 +2,8 @@
 :root {
 	--page: 1080px;
 	--prose: 720px;
+	/* note page column: text and widgets share it */
+	--note: 760px;
 	--wide: 960px;
 	--gutter: 20px;
 
@@ -73,7 +75,7 @@ a {
 }
 main {
 	padding: 0 var(--gutter);
-	/* 100vw in the widget width includes a classic scrollbar; never scroll sideways */
+	/* never scroll sideways (clip, unlike hidden, keeps position: sticky working) */
 	overflow-x: clip;
 }
 .container {
@@ -220,18 +222,73 @@ a.chip:hover {
 	border-bottom: 1px dashed var(--border-strong);
 }
 
-/* Widgets: wider than the text column, height set by NoteLayout's script. */
+/* Widgets sit in the text column as numbered figures (see src/plugins/figures.mjs);
+   height is set by the note page's script. */
+.prose {
+	counter-reset: figure equation;
+}
+.prose figure.widget {
+	margin: 2.2em 0;
+	counter-increment: figure;
+}
 .prose iframe {
 	display: block;
-	width: min(var(--wide), calc(100vw - 2 * var(--gutter))) !important;
-	max-width: none;
-	position: relative;
-	left: 50%;
-	transform: translateX(-50%);
+	width: 100% !important;
 	margin: 2em 0;
 	border: 1px solid var(--border) !important;
 	border-radius: 12px;
 	background: var(--bg);
+}
+.prose figure.widget iframe {
+	margin: 0;
+}
+.prose figcaption {
+	margin-top: 10px;
+	color: var(--text-3);
+	font-size: 13.5px;
+	line-height: 1.5;
+}
+.prose figcaption::before {
+	content: '그림 ' counter(figure) '. ';
+	font-weight: 600;
+	color: var(--text-2);
+}
+
+/* Display equations, numbered on the right */
+.prose .eq {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	margin: 1.4em 0;
+	counter-increment: equation;
+}
+.prose .eq .katex-display {
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+}
+.prose .eq::after {
+	content: '(' counter(equation) ')';
+	color: var(--text-3);
+	font-size: 15px;
+}
+
+/* The note's opening quote is its summary, shown like a paper's TL;DR box. */
+.prose > blockquote:first-child {
+	margin: 0 0 2.4em;
+	padding: 18px 24px;
+	border-left: 0;
+	border-radius: 10px;
+	background: var(--surface);
+}
+.prose > blockquote:first-child::before {
+	content: '요약';
+	display: block;
+	margin-bottom: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	color: var(--text-3);
 }
 
 /* Lists of notes */

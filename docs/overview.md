@@ -58,6 +58,7 @@ src/
   lib/vault.mjs            id·URL·위키링크 해석·프론트매터 읽기 (빌드와 스크립트가 공유)
   lib/notes.ts             페이지용: getNotes, 링크 해석기, 백링크, KST 날짜
   plugins/remark-wikilinks.mjs  [[위키링크]] → 링크
+  plugins/figures.mjs      위젯 iframe → 번호 붙은 그림(캡션), 수식 번호
   consts.ts                사이트 이름, 라벨, 학습 단계 STAGES 0~8
   pages/                   index, log, stats, map, 404, [section]/[...slug]
   components/, layouts/, styles/global.css
@@ -109,12 +110,19 @@ original: "https://..."           # 선택, 원문 URL
 | `/log/` | 월별 노트 목록 (날짜, 제목, 분, topics) |
 | `/stats/` | 53주 KST 히트맵 (minutes 30/60/120 기준), 연속 일수, 개념별 시간. 마지막 빌드 기준 |
 | `/map/` | 단계 0~8별 노트, 단계 미지정 목록 |
-| `/<section>/<id>/` | 노트 본문, 목차, 단계·개념 칩, "이 글의 개념", 백링크 |
+| `/<section>/<id>/` | 논문 블로그형 노트 페이지: 가운데 제목 영역(유형 라벨, 제목, 날짜·시간·원문), 단계·개념 칩, 요약 상자, 본문, "이 글의 개념", 백링크, 원문, 학습 로그로 돌아가는 링크 |
 | 404 | 없는 주소 |
 
+- **노트 페이지 배치:**
+  - 본문과 위젯이 한 열(`--note`, 760px)을 같이 쓴다.
+  - 화면 폭 1120px 이상: 목차가 왼쪽에 붙어 스크롤을 따라온다(sticky). 지금 읽는 절을 강조한다.
+  - 1120px 미만: 목차는 제목 아래 접힌 상자다.
+  - 본문 첫 `>` 인용 단락은 "요약" 상자로 보인다. 본문 첫 요소가 인용이면 무엇이든 그렇게 보인다.
+  - 한 줄에 단독으로 있는 위젯 iframe은 "그림 N." 캡션이 붙는다. 캡션은 iframe의 `title`, 없으면 위젯 파일의 `<title>`, 그것도 없으면 파일 이름이다. 번호를 못 붙이거나 위젯 파일이 없으면 빌드가 경고를 낸다.
+  - `$$` 수식은 오른쪽에 (N) 번호가 붙는다. `\tag{}`를 쓴 수식은 그 번호만 쓴다.
+  - `npm run build`는 공개 노트 검사 → `astro build --force` → 배포 목록(`dist/study-log-manifest.json`) 작성 순이다. `--force`는 콘텐츠 캐시를 지워서, 위젯 제목이나 다른 노트가 바뀌어도 캡션과 위키링크가 바로 반영된다.
 - **노트 페이지의 위젯 iframe:**
   - 같은 출처라서 ResizeObserver로 높이를 자동으로 맞춘다.
-  - 폭은 본문보다 넓게, 최대 960px이다.
   - sandbox는 쓰지 않는다. 쓰면 높이 자동 조절이 깨진다.
 - **스타일:**
   - 글꼴은 Pretendard(CDN)다.
