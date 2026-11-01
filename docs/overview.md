@@ -227,7 +227,9 @@ Mac의 ChatGPT Work ─"기록해 줘"→ AGENTS.md 규칙 + skills/study-log/SK
 - ChatGPT 앱의 로컬 프로젝트에서 이 폴더를 기본 폴더로 쓴다.
 - 차이와 필수 규칙은 저장소 `AGENTS.md`에 있다. 프론트매터는 `source: chatgpt-work`다.
 - push는 Mac의 `gh` 로그인을 쓴다. ChatGPT 앱의 GitHub 연결은 쓰지 않는다.
-- 공개까지 수동 프롬프트로 한 번 시험했다(`0e991c2`). "올려" 승인은 지침이며 기술적으로 강제하지는 않는다.
+- 공개까지 수동 프롬프트로 한 번 시험했다(`0e991c2`).
+- 권한은 Ask for approval로 둔다. 샌드박스가 `.git` 쓰기를 막아 `sync`, `draft`, `publish`는 앱의 승인 창을 거친다. `publish` 승인을 거부하면 커밋 없이 멈추는 것을 시험했다.
+- Approve for me와 Full access에서는 사람이 승인 창을 보지 않으므로 쓰지 않는다.
 
 ## 9. Obsidian
 
