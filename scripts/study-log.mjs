@@ -85,7 +85,8 @@ function scan(p) {
 	const rules = /\.(html|svg)$/i.test(p) ? [...ERRORS, ...WIDGET_ERRORS] : ERRORS;
 	for (const [label, re] of rules) {
 		const m = re.exec(text);
-		if (m) errors.push(`${label} (${lineOf(text, m.index)}줄: ${m[0].trim().slice(0, 40)})`);
+		// Line number only: the match may be a secret, and this output ends up in chat logs.
+		if (m) errors.push(`${label} (${lineOf(text, m.index)}줄)`);
 	}
 	for (const [label, re] of WARNINGS) {
 		const m = re.exec(text);
@@ -176,9 +177,18 @@ function noteUrlOf(p) {
 
 function requireMain() {
 	if (git('rev-parse', '--abbrev-ref', 'HEAD') !== 'main') fail('main 브랜치가 아닙니다.');
+	if (tryGit('rev-parse', '--abbrev-ref', '@{u}').stdout.trim() !== 'origin/main') fail('main이 origin/main을 따라가지 않습니다.');
 }
 
 const ahead = () => Number(tryGit('rev-list', '--count', '@{u}..HEAD').stdout.trim() || 0);
+
+// Pushing a commit publishes everything before it too. Only earlier commits of these same
+// files (a publish whose push failed) may go out; any other unpushed commit stops the publish.
+function refuseOtherCommits(paths, rev = 'HEAD') {
+	const files = git('log', '-m', '--no-renames', '--format=', '--name-only', '-z', `@{u}..${rev}`).split('\0').filter(Boolean);
+	const other = [...new Set(files.map((s) => s.normalize('NFC')))].filter((p) => !paths.includes(p));
+	if (other.length) fail(`push 안 된 커밋에 이번 경로가 아닌 파일이 있어 공개하지 않습니다. 사용자에게 확인하세요: ${other.join(', ')}`);
+}
 
 function sync() {
 	requireMain();
@@ -186,7 +196,7 @@ function sync() {
 	if (err) fail(`최신 내용을 받지 못했습니다. 사용자에게 보여 주고 멈추세요.\n${err}`);
 	console.log(`저장소: ${ROOT}`);
 	console.log(`오늘(KST): ${today()}`);
-	if (ahead()) console.log(`push 안 된 커밋 ${ahead()}개: publish를 다시 실행하면 함께 올라갑니다.`);
+	if (ahead()) console.log(`push 안 된 커밋 ${ahead()}개: 같은 파일을 다시 publish할 때만 함께 올라갑니다. 다른 파일이 들어 있으면 publish가 멈춥니다.`);
 	const dirty = tryGit('status', '--porcelain').stdout.trimEnd();
 	console.log(`커밋 안 된 변경(사용자 것일 수 있음, 건드리지 말 것):\n${dirty || '  없음'}`);
 	const d = drafts().filter((p) => fs.existsSync(path.join(ROOT, p)));
@@ -199,13 +209,19 @@ function sync() {
 	console.log(`개념 노트 제목: ${concepts.join(', ') || '없음'}`);
 }
 
-function push() {
-	let r = tryGit('push', '-q');
+function push(paths) {
+	// Push this exact commit, so anything committed after the check stays local.
+	const pushHead = () => {
+		const commit = git('rev-parse', 'HEAD');
+		refuseOtherCommits(paths, commit);
+		return tryGit('push', '-q', 'origin', `${commit}:refs/heads/main`);
+	};
+	let r = pushHead();
 	if (r.status !== 0) {
 		// The other computer pushed meanwhile: rebase once and retry.
 		const err = pull();
 		if (err) return `push 거부 후 다시 받기 실패:\n${err}`;
-		r = tryGit('push', '-q');
+		r = pushHead();
 	}
 	return r.status === 0 ? null : `${r.stdout}${r.stderr}`;
 }
@@ -214,12 +230,15 @@ function publish(paths) {
 	requireMain();
 	for (const p of paths) if (!fs.existsSync(path.join(ROOT, p))) fail(`파일이 없습니다: ${p}`);
 	if (tryGit('diff', '--cached', '--quiet').status !== 0) fail('이미 스테이징된 다른 변경이 있습니다. 사용자에게 확인하세요.');
+	if (tryGit('fetch', '-q').status !== 0) fail('원격 상태를 확인하지 못했습니다. 네트워크와 로그인을 확인한 뒤 다시 실행하세요.');
+	refuseOtherCommits(paths);
 	const notes = paths.filter((p) => NOTE_RE.test(p));
 	const changed = paths.filter(isChanged);
 
 	if (changed.length === 0) {
 		// Nothing new: maybe an earlier publish committed but failed to push.
 		if (!ahead()) fail('바뀐 내용이 없습니다.');
+		if (!check(paths)) process.exit(1);
 	} else {
 		if (!check(paths)) process.exit(1);
 		// Pull and build while drafts are still locked; unlock only for the commit itself.
@@ -236,14 +255,14 @@ function publish(paths) {
 			if (staged.length !== want.size || staged.some((s) => !want.has(s))) {
 				throw new Error(`스테이징된 파일이 예상과 다릅니다.\n예상: ${changed.join(', ')}\n실제: ${staged.join(', ')}`);
 			}
-			git('commit', '-q', '-m', `${updating ? 'Update' : 'Add'} study note: ${title}`, '-m', 'Co-Authored-By: Claude <noreply@anthropic.com>');
+			git('commit', '-q', '-m', `${updating ? 'Update' : 'Add'} study note: ${title}`);
 		} catch (e) {
 			tryGit('reset', '-q', '--', ...changed);
 			draft(paths.filter((p) => !isTracked(p)));
 			fail(`커밋하지 못했습니다. 초안 잠금을 되돌렸습니다.\n${e.stderr ?? e.message}`);
 		}
 	}
-	const err = push();
+	const err = push(paths);
 	if (err) fail(`커밋은 로컬에 있지만 push 실패. 사용자에게 보여 주세요. 원인을 해결한 뒤 같은 publish를 다시 실행하면 올라갑니다.\n${err}`);
 	console.log(`공개 완료: ${git('rev-parse', '--short', 'HEAD')}`);
 	for (const p of notes) console.log(`URL: ${noteUrlOf(p)}`);

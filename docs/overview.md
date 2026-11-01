@@ -174,7 +174,7 @@ GitHub → 다른 컴퓨터: Obsidian Git 자동 pull
 | `draft <경로…>` | `.git/info/exclude`의 마커 블록에 넣어 git이 무시하게 함 (로컬 전용) |
 | `check <경로…>` | 오류: 이메일, 전화, 주민번호, API 키, 비밀 키, JWT, 비밀값 대입, 서명 URL, 로컬 경로, 위젯 외부 접근. 경고: 지원·채용 표현, 긴 인용 |
 | `build` | `npm run build` |
-| `publish <경로…>` | 허용 경로만 받음. 검사 → pull → 빌드(초안 잠금 유지) → 잠금 해제 → add → 스테이징 집합이 정확히 일치하는지 확인 → commit → push(거부되면 한 번 rebase 후 재시도). 실패하면 되돌리고 다시 잠금 |
+| `publish <경로…>` | 허용 경로만 받음. 검사 → pull → 빌드(초안 잠금 유지) → 잠금 해제 → add → 스테이징 집합이 정확히 일치하는지 확인 → commit → 그 커밋까지 지정해 push(거부되면 한 번 rebase 후 재시도). 실패하면 되돌리고 다시 잠금. 같은 경로의 이전 미전송 커밋은 함께 올라간다. push 안 된 커밋에 이번 경로 말고 다른 파일이 있으면 시작과 push 직전에 멈춘다 |
 | `wait <노트 경로>` | 배포 URL이 200이고 제목을 포함할 때까지 최대 5분 확인 |
 | `discard <경로…>` | 새 초안은 삭제, 고친 공개 파일은 `git restore` |
 
@@ -217,6 +217,18 @@ GitHub → 다른 컴퓨터: Obsidian Git 자동 pull
   - 공개 뒤 맥 Obsidian에는 Obsidian Git 자동 받기(10분 간격)로 들어온다.
 - 커밋 작성자는 Code 탭과 같다(2절의 noreply 이메일). 작업 공간 clone에서 저장소 로컬 설정으로 지정한다.
 
+### 8.2 ChatGPT Work에서 기록
+
+```
+Mac의 ChatGPT Work ─"기록해 줘"→ AGENTS.md 규칙 + skills/study-log/SKILL.md
+   → node scripts/study-log.mjs로 초안·검사·빌드 ─"올려"→ publish → 배포 확인
+```
+
+- ChatGPT 앱의 로컬 프로젝트에서 이 폴더를 기본 폴더로 쓴다.
+- 차이와 필수 규칙은 저장소 `AGENTS.md`에 있다. 프론트매터는 `source: chatgpt-work`다.
+- push는 Mac의 `gh` 로그인을 쓴다. ChatGPT 앱의 GitHub 연결은 쓰지 않는다.
+- 공개까지 수동 프롬프트로 한 번 시험했다(`0e991c2`). "올려" 승인은 지침이며 기술적으로 강제하지는 않는다.
+
 ## 9. Obsidian
 
 - **공유 설정** `.obsidian/app.json` (커밋됨):
@@ -252,6 +264,9 @@ Windows 설치 명령은 `docs/setup.md`에 있다. 설치 뒤 Claude 앱을 다
 - 검사는 정규식이라 완전하지 않다. 마지막 확인은 사용자가 초안 보고를 보고 한다.
 - autostash를 되돌리다 충돌이 나면 스크립트는 멈추고 보고만 한다. 해결은 사람이 한다.
 - 시험 노트 두 개의 커밋(`0093cbb`, `aea0d52`)은 공개 기록에 남아 있다. 내용은 시험 문구뿐이다.
+- ChatGPT Work 시험 노트 `경사하강법의 한 걸음`(`0e991c2`)은 사이트에 공개된 채로 남아 있다.
+- `study-log`에는 공개된 파일을 지우는 명령이 없다. 삭제는 사용자에게 확인한 뒤 따로 처리한다.
+- `check`는 지금 파일 내용만 본다. 같은 경로의 미전송 커밋에 있던 내용은 지금 파일에서 지웠어도 git 기록으로 공개된다.
 
 ## 12. 리뷰 기록
 

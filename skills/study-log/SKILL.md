@@ -22,7 +22,7 @@ description: 이 대화에서 공부한 내용을 study-site 공개 블로그 �
 | `$SL draft <경로…>` | 새 파일을 초안으로 잠금. 공개 전까지 git이 커밋하지 않음 |
 | `$SL check <경로…>` | 개인정보·비밀·외부 리소스 검사. 오류면 exit 1 |
 | `$SL build` | 사이트 빌드(프론트매터 스키마 검사 포함) |
-| `$SL publish <경로…>` | 검사 → pull → 빌드 → 이 경로만 커밋 → push. 노트 URL 출력. 제목은 노트 프론트매터에서 읽음 |
+| `$SL publish <경로…>` | 검사 → pull → 빌드 → 이 경로만 커밋 → 그 커밋을 push. 노트 URL 출력. 제목은 노트 프론트매터에서 읽음. push 안 된 커밋에 다른 파일이 있으면 멈춤 |
 | `$SL wait <노트 경로>` | 그 노트의 배포 페이지가 뜰 때까지 최대 5분 확인 |
 | `$SL discard <경로…>` | 새 초안은 삭제, 고친 공개 노트는 공개된 내용으로 되돌림 |
 
@@ -46,7 +46,7 @@ description: 이 대화에서 공부한 내용을 study-site 공개 블로그 �
 
 - type은 기본 `session`이다. 대화가 한 개념의 설명뿐이면 `concept`, 의견·회고 글이면 `essay`.
 - 파일 이름
-  - session: `vault/sessions/<오늘>-<짧은-영문-슬러그>.md` (예: `2026-11-01-forward-gradient.md`)
+  - session: `vault/sessions/<date 값>-<짧은-영문-슬러그>.md` (예: `2026-11-01-forward-gradient.md`)
   - concept: `vault/concepts/<개념 이름>.md` (한국어 가능)
   - essay: `vault/essays/<짧은-영문-슬러그>.md`
 - 같은 이름이 있으면 `-2`, `-3`을 붙인다.
@@ -58,7 +58,7 @@ description: 이 대화에서 공부한 내용을 study-site 공개 블로그 �
 ---
 title: "<제목>"
 type: session
-date: <$SL sync가 출력한 오늘 날짜>
+date: <공부한 날. 대화에서 달리 나오지 않으면 $SL sync가 출력한 오늘 날짜>
 minutes: <공부 시간(분)>
 topics: ["[[개념 A]]", "[[개념 B]]"]
 stage: [2, 4]
@@ -132,7 +132,7 @@ original: "<원문 URL, 있을 때만>"
 - "취소", "올리지 마"면 `$SL discard <경로…>`로 지운다.
 
 공개 순서:
-1. 사용자가 Obsidian에서 초안을 고쳤을 수 있다. 파일을 다시 읽고 바뀐 점이 있으면 한 줄로 알린다.
+1. 사용자가 Obsidian에서 초안을 고쳤을 수 있다. 파일을 다시 읽는다. 승인 뒤 바뀐 점이 있으면 보여 주고 다시 승인받는다.
 2. `$SL publish <노트와 위젯 경로…>`. 실패하면 출력을 보여 주고 멈춘다. push만 실패했으면 원인을 사용자와 해결한 뒤 같은 명령을 다시 실행한다.
 3. `$SL wait <노트 경로>`를 실행하고 결과를 기다린다(최대 5분).
 4. 보고: 공개 주소, 커밋, 다른 컴퓨터의 Obsidian에는 Obsidian Git 자동 받기로 들어온다는 점. dev 서버를 띄웠으면 끈다.
