@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>학습률에 따른 경사하강 한 걸음</title>
+<style>
+:root{color-scheme:light;--bg:#ffffff;--text:#17212b;--muted:#54616d;--panel:#f2f5f8;--line:#cbd5df;--curve:#8995a1;--start:#3267bb;--next:#9a3d99;--good:#207047;--warn:#ac402d;--focus:#225ab4}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#151a20;--text:#edf2f6;--muted:#b2bdc7;--panel:#242d37;--line:#4a5867;--curve:#9ba9b7;--start:#8ab7ff;--next:#e6a1e5;--good:#8bdaad;--warn:#ffab98;--focus:#9cbfff}}
+*{box-sizing:border-box}body{margin:0;padding:14px;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,sans-serif}main{max-width:720px;margin:auto}h1{font-size:18px;margin:0 0 2px}p{margin:0}.sub{color:var(--muted);font-size:12px}.controls{display:flex;align-items:center;gap:12px;margin:12px 0 8px}.controls label{white-space:nowrap}input{min-width:60px;flex:1;accent-color:var(--next)}button{font:inherit;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:5px 10px}button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:3px}.values{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.value{padding:7px 9px;background:var(--panel);border-radius:8px}.value span{display:block;color:var(--muted);font-size:12px}.value strong,output{font-variant-numeric:tabular-nums}svg{display:block;width:100%;height:155px;margin:4px 0}svg text{fill:var(--muted);font-size:12px}.axes{stroke:var(--line);fill:none}.curve{stroke:var(--curve);fill:none;stroke-width:2}.step{stroke:var(--next);stroke-width:2;stroke-dasharray:5 4}.start{fill:var(--start)}.next{fill:var(--next)}.legend{display:flex;gap:16px;font-size:12px;align-items:center}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}.dot.start{background:var(--start)}.dot.next{background:var(--next)}#meaning{margin-top:5px;font-size:13px;min-height:40px}#meaning[data-tone="good"]{color:var(--good)}#meaning[data-tone="warn"]{color:var(--warn)}@media(max-width:380px){body{padding:10px}.controls{gap:7px}.value{padding:6px}.sub{font-size:11px}}
+</style>
+</head>
+<body>
+<main>
+<h1>학습률에 따른 한 걸음</h1>
+<p class="sub">f(x) = x² / 2 · 시작점 x₀ = 2 · 기울기 f′(2) = 2</p>
+<div class="controls"><label for="rate">학습률 η = <output id="eta" for="rate">0.20</output></label><input id="rate" type="range" min="0" max="2.5" step="0.05" value="0.2" aria-label="학습률"><button id="reset" type="button">초기화</button></div>
+<div class="values" aria-live="polite"><div class="value"><span>다음 위치 x₁</span><strong id="position">1.600</strong></div><div class="value"><span>다음 함수값</span><strong id="loss">1.280</strong></div><div class="value"><span>함수값 변화</span><strong id="change">−0.720</strong></div></div>
+<svg viewBox="0 0 600 155" role="img" aria-labelledby="chart-title chart-description"><title id="chart-title">이차함수 위의 경사하강 한 걸음</title><desc id="chart-description">시작점과 학습률에 따른 다음 위치를 표시합니다.</desc><path class="axes" d="M30 132H575 M300 10V136"></path><path id="curve" class="curve"></path><line id="step" class="step"></line><circle id="start" class="start" r="5"></circle><circle id="next" class="next" r="6"></circle><text x="300" y="150" text-anchor="middle">0</text><text x="72" y="150" text-anchor="middle">−3</text><text x="528" y="150" text-anchor="middle">3</text><text x="585" y="136">x</text><text x="308" y="15">f(x)</text></svg>
+<div class="legend"><span><i class="dot start" aria-hidden="true"></i>시작점 · f(2)=2</span><span><i class="dot next" aria-hidden="true"></i>다음 위치</span></div>
+<p id="meaning" role="status"></p>
+</main>
+<script>
+'use strict';
+const byId=id=>document.getElementById(id);
+const px=x=>300+76*x,py=y=>132-19*y;
+let path='';for(let i=0;i<=140;i++){const x=-3.5+i*.05;path+=(i?'L':'M')+px(x).toFixed(2)+' '+py(x*x/2).toFixed(2)+' ';}
+byId('curve').setAttribute('d',path);
+byId('start').setAttribute('cx',px(2));byId('start').setAttribute('cy',py(2));
+function update(){
+ const rate=Number(byId('rate').value),next=2-2*rate,loss=next*next/2,delta=loss-2;
+ byId('eta').textContent=rate.toFixed(2);byId('position').textContent=next.toFixed(3);byId('loss').textContent=loss.toFixed(3);byId('change').textContent=(delta>0?'+':delta<0?'−':'')+Math.abs(delta).toFixed(3);
+ byId('next').setAttribute('cx',px(next));byId('next').setAttribute('cy',py(loss));
+ for(const [key,val] of Object.entries({x1:px(2),y1:py(2),x2:px(next),y2:py(loss)}))byId('step').setAttribute(key,val);
+ const meaning=byId('meaning');meaning.dataset.tone=delta<0?'good':delta>0?'warn':'';
+ meaning.textContent=rate===0?'학습률이 0이므로 움직이지 않습니다.':rate===1?'이 함수에서는 한 걸음으로 최솟값에 도착합니다.':rate===2?'반대편의 같은 높이에 도착합니다. 함수값은 줄지 않습니다.':rate>2?'걸음이 너무 커서 함수값이 시작점보다 증가합니다.':rate>1?'최소점을 지나치지만 함수값은 줄어듭니다.':'최소점 방향으로 이동합니다. 작은 학습률일수록 이동 거리도 작습니다.';
+ byId('chart-description').textContent='학습률 '+rate.toFixed(2)+', 시작 위치 2에서 다음 위치 '+next.toFixed(3)+', 함수값 '+loss.toFixed(3)+'로 이동합니다.';
+}
+byId('rate').addEventListener('input',update);byId('reset').addEventListener('click',()=>{byId('rate').value='0.2';update();});update();
+</script>
+</body>
+</html>
